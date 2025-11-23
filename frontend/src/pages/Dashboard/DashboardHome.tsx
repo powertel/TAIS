@@ -1,4 +1,5 @@
 import { useState, useEffect, Suspense, useMemo } from 'react';
+import { ChevronDown, MapPinned, Warehouse, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useUserAccess } from '../../hooks/useUserAccess';
 import axios from 'axios';
@@ -265,25 +266,42 @@ export default function DashboardHome() {
                 <span className="text-sm text-brand-600 dark:text-brand-400">Live</span>
               </div>
             </div>
-            <div className="rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:border-gray-700/50 dark:from-gray-900/50 dark:to-gray-800/50">
+            <div className="h-screen overflow-y-auto scrollbar-white rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:border-gray-700/50 dark:from-gray-900/50 dark:to-gray-800/50">
               {Object.entries(groupedTransformers).map(([region, depots]) => (
                 <details key={region} className="mb-3 group" open>
-                  <summary className="flex items-center justify-between cursor-pointer rounded-xl px-3 py-2 bg-gradient-to-r from-brand-100 to-brand-300 text-brand-800 shadow-sm dark:from-brand-900/30 dark:to-brand-800/30 dark:text-brand-200 border border-brand-300/40 dark:border-brand-700/50">
-                    <span className="font-semibold">{region}</span>
-                    <span className="text-xs font-medium text-brand-600 dark:text-brand-300">{Object.values(depots).reduce((acc, d) => acc + d.length, 0)} transformers</span>
+                  <summary className="flex items-center justify-between cursor-pointer rounded-lg px-3 py-2 bg-white/80 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-100 dark:hover:bg-gray-700 transition group-open:ring-2 group-open:ring-blue-200/60 dark:group-open:ring-gray-700/60">
+                    <div className="flex items-center gap-2">
+                      <MapPinned className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-gray-900 dark:text-white">{region}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                        {Object.values(depots).reduce((acc, d) => acc + d.length, 0)}
+                      </span>
+                      <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform group-open:rotate-180" />
+                    </div>
                   </summary>
                   <div className="mt-2 pl-2">
                     {Object.entries(depots).map(([depot, list]) => (
-                      <details key={depot} className="mb-2" open>
-                        <summary className="flex items-center justify-between cursor-pointer rounded-lg px-3 py-2 bg-gradient-to-r from-blue-light-100 to-blue-light-300 text-blue-light-800 shadow-sm dark:from-blue-light-900/30 dark:to-blue-light-800/30 dark:text-blue-light-200 border border-blue-light-300/40 dark:border-blue-light-700/50">
-                          <span className="font-medium">{depot}</span>
-                          <span className="text-xs font-medium">{list.length}</span>
+                      <details key={depot} className="mb-2 group" open>
+                        <summary className="flex items-center justify-between cursor-pointer rounded-md px-3 py-2 bg-white/80 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-100 dark:hover:bg-gray-700 transition group-open:ring-2 group-open:ring-blue-200/60 dark:group-open:ring-gray-700/60">
+                          <div className="flex items-center gap-2">
+                            <Warehouse className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <span className="font-medium text-gray-900 dark:text-white">{depot}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                              {list.length}
+                            </span>
+                            <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform group-open:rotate-180" />
+                          </div>
                         </summary>
                         <ul className="mt-2 space-y-2">
                           {list.map((t) => (
-                            <li key={t.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white/80 shadow-sm hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 transition">
+                            <li key={t.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white shadow-sm hover:shadow-md border border-gray-200/60 dark:border-gray-700/60 dark:bg-gray-800 transition">
                               <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id)}>
                                 <div className="flex items-center gap-2">
+                                  <Zap className={`w-4 h-4 ${t.is_active ? 'text-success' : 'text-danger'}`} />
                                   <span className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</span>
                                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.is_active ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20' : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
                                 </div>

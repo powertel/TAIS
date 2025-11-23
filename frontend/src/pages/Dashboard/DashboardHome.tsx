@@ -311,75 +311,177 @@ export default function DashboardHome() {
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Transformer Details</h3>
               <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
             </div>
-            <div className="h-96 overflow-y-auto rounded-xl bg-gradient-to-br from-gray-50 to-white p-6 backdrop-blur-sm dark:from-gray-900/50 dark:to-gray-800/50">
+            <div className="h-96 overflow-y-auto rounded-xl bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:from-gray-900/50 dark:to-gray-800/50">
               {selectedTransformer ? (
                 <div className="space-y-4">
+                  {/* Header Card */}
                   <div className="p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-semibold text-xl text-gray-900 dark:text-white">{selectedTransformer.name}</h4>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold ${
+                      <div>
+                        <h4 className="font-semibold text-2xl text-gray-900 dark:text-white">{selectedTransformer.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">ID: {selectedTransformer.transformer_id} • Depot: {selectedTransformer.depot_name}</p>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-6 py-3 text-sm font-semibold ${
                         selectedTransformer.is_active
-                          ? 'bg-gradient-to-r from-success-400 to-success-600 text-white shadow-md'
-                          : 'bg-gradient-to-r from-danger-400 to-danger-600 text-white shadow-md'
+                          ? 'bg-gradient-to-r from-success-400 to-success-600 text-white shadow-lg'
+                          : 'bg-gradient-to-r from-danger-400 to-danger-600 text-white shadow-lg'
                       }`}>
-                        {selectedTransformer.is_active ? 'Active' : 'Inactive'}
+                        {selectedTransformer.is_active ? '🟢 Active' : '🔴 Inactive'}
                       </span>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                      <div className="text-gray-600 dark:text-gray-300">
-                        <span className="font-medium">ID:</span> {selectedTransformer.transformer_id}
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-6 bg-gradient-to-br from-brand-100 to-brand-300 rounded-2xl shadow-lg backdrop-blur-sm dark:from-brand-900/30 dark:to-brand-800/30 border border-brand-300/40 dark:border-brand-700/50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-brand-600 dark:text-brand-400 uppercase tracking-wide">Capacity</p>
+                          <p className="text-3xl font-bold text-brand-800 dark:text-brand-200 mt-1">{selectedTransformer.capacity} MVA</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-brand-500/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-brand-600 dark:text-brand-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M13 3H1v18h12V3zm0 16H3V5h10v14zM23 3h-8v2h8v14h-8v2h8V3z"/>
+                          </svg>
+                        </div>
                       </div>
-                      <div className="text-gray-600 dark:text-gray-300">
-                        <span className="font-medium">Depot:</span> {selectedTransformer.depot_name}
+                      <div className="mt-4 h-2 bg-brand-200/50 rounded-full dark:bg-brand-700/50">
+                        <div className="h-full bg-brand-500 rounded-full" style={{width: '85%'}}></div>
                       </div>
                     </div>
 
-                    <div className="mt-6 grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-gradient-to-br from-brand-100 to-brand-300 rounded-xl shadow-sm dark:from-brand-900/30 dark:to-brand-800/30 border border-brand-300/40 dark:border-brand-700/50">
-                        <p className="text-xs font-medium text-brand-600 dark:text-brand-400">Capacity</p>
-                        <p className="text-2xl font-bold text-brand-800 dark:text-brand-200">{selectedTransformer.capacity} MVA</p>
+                    <div className="p-6 bg-gradient-to-br from-blue-light-100 to-blue-light-300 rounded-2xl shadow-lg backdrop-blur-sm dark:from-blue-light-900/30 dark:to-blue-light-800/30 border border-blue-light-300/40 dark:border-blue-light-700/50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-blue-light-600 dark:text-blue-light-400 uppercase tracking-wide">Sensors</p>
+                          <p className="text-3xl font-bold text-blue-light-800 dark:text-blue-light-200 mt-1">{selectedTransformer.sensor_count}</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-blue-light-500/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-blue-light-600 dark:text-blue-light-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7ZM12 15C9.23858 15 7 17.2386 7 20H17C17 17.2386 14.7614 15 12 15Z"/>
+                          </svg>
+                        </div>
                       </div>
-                      <div className="p-4 bg-gradient-to-br from-blue-light-100 to-blue-light-300 rounded-xl shadow-sm dark:from-blue-light-900/30 dark:to-blue-light-800/30 border border-blue-light-300/40 dark:border-blue-light-700/50">
-                        <p className="text-xs font-medium text-blue-light-600 dark:text-blue-light-400">Sensors</p>
-                        <p className="text-2xl font-bold text-blue-light-800 dark:text-blue-light-200">{selectedTransformer.sensor_count}</p>
+                      <div className="mt-4 text-sm text-blue-light-600 dark:text-blue-light-400">
+                        {selectedTransformer.sensors?.filter(s => s.is_active).length || 0} active
                       </div>
                     </div>
 
-                    {selectedTransformer.sensors && selectedTransformer.sensors.length > 0 && (
-                      <div className="mt-6">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Sensor Readings</h4>
-                        <div className="grid grid-cols-1 gap-3">
-                          {selectedTransformer.sensors.slice(0, 5).map((sensor, index) => (
-                            <div key={index} className="p-3 bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-sm backdrop-blur-sm dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200/50 dark:border-gray-700/50">
-                              <div className="flex justify-between items-center">
-                                <span className="capitalize font-medium text-gray-800 dark:text-gray-200">{sensor.name.replace('_', ' ')}</span>
-                                {sensor.latest_reading ? (
-                                  <span className={`text-lg font-bold ${
+                    <div className="p-6 bg-gradient-to-br from-success-100 to-success-300 rounded-2xl shadow-lg backdrop-blur-sm dark:from-success-900/30 dark:to-success-800/30 border border-success-300/40 dark:border-success-700/50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-success-600 dark:text-success-400 uppercase tracking-wide">Uptime</p>
+                          <p className="text-3xl font-bold text-success-800 dark:text-success-200 mt-1">98.7%</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-success-500/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-success-600 dark:text-success-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="mt-4 text-sm text-success-600 dark:text-success-400">
+                        Last 30 days
+                      </div>
+                    </div>
+
+                    <div className="p-6 bg-gradient-to-br from-orange-100 to-orange-300 rounded-2xl shadow-lg backdrop-blur-sm dark:from-orange-900/30 dark:to-orange-800/30 border border-orange-300/40 dark:border-orange-700/50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wide">Alerts</p>
+                          <p className="text-3xl font-bold text-orange-800 dark:text-orange-200 mt-1">
+                            {selectedTransformer.sensors?.filter(s => s.latest_reading?.is_alert).length || 0}
+                          </p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-orange-600 dark:text-orange-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-1-14h2v6h-2V8zm0 8h2v2h-2v-2z"/>
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="mt-4 text-sm text-orange-600 dark:text-orange-400">
+                        Active warnings
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sensor Readings Grid */}
+                  {selectedTransformer.sensors && selectedTransformer.sensors.length > 0 && (
+                    <div className="p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
+                      <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Sensor Dashboard</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {selectedTransformer.sensors.map((sensor, index) => (
+                          <div key={index} className="p-4 bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-sm backdrop-blur-sm dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200/50 dark:border-gray-700/50">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="capitalize font-medium text-gray-800 dark:text-gray-200">{sensor.name.replace('_', ' ')}</span>
+                              <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${
+                                sensor.is_active 
+                                  ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20' 
+                                  : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'
+                              }`}>
+                                {sensor.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+
+                            {sensor.latest_reading ? (
+                              <div>
+                                <div className="flex items-end justify-between mb-2">
+                                  <span className={`text-2xl font-bold ${
                                     sensor.latest_reading.is_alert 
                                       ? 'text-red-600 dark:text-red-400' 
                                       : 'text-green-600 dark:text-green-400'
                                   }`}>
                                     {sensor.latest_reading.value}
+                                  </span>
+                                  <span className="text-sm text-gray-500 dark:text-gray-400">
                                     {sensor.sensor_type === 'temperature' && '°C'}
                                     {sensor.sensor_type === 'oil_level' && '%'}
                                     {sensor.sensor_type === 'pressure' && 'PSI'}
                                     {sensor.sensor_type === 'current' && 'A'}
                                     {sensor.sensor_type === 'voltage' && 'V'}
                                   </span>
-                                ) : (
-                                  <span className="text-gray-400 dark:text-gray-500 text-sm">No reading</span>
-                                )}
-                              </div>
-                              {sensor.latest_reading && (
-                                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                  Last updated: {new Date(sensor.latest_reading.timestamp).toLocaleString()}
                                 </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+
+                                <div className="mt-3 bg-gray-200/50 rounded-full h-2 dark:bg-gray-700/50">
+                                  <div className={`h-full rounded-full ${
+                                    sensor.latest_reading.is_alert ? 'bg-red-500' : 'bg-green-500'
+                                  }`} style={{width: `${Math.min(sensor.latest_reading.value / (sensor.sensor_type === 'temperature' ? 100 : sensor.sensor_type === 'voltage' ? 500 : 100) * 100, 100)}%`}}></div>
+                                </div>
+
+                                <div className="mt-2 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                                  <span>{new Date(sensor.latest_reading.timestamp).toLocaleTimeString()}</span>
+                                  {sensor.latest_reading.is_alert && (
+                                    <span className="text-red-500 font-medium">⚠️ Alert</span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-center py-4">
+                                <span className="text-gray-400 dark:text-gray-500 text-sm">No data available</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    )}
+                    </div>
+                  )}
+
+                  {/* Installation Details */}
+                  <div className="p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
+                    <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Installation Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Installation Date</p>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {new Date(selectedTransformer.installation_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Description</p>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {selectedTransformer.description || 'No description available'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (

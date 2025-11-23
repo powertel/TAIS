@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
-import DashboardLayout from '../DashboardLayout';
-import { ChevronRight, ChevronDown, MapPin, Building2, Power, Activity } from 'lucide-react';
 
 interface HierarchyData {
   id: number;
@@ -31,7 +29,7 @@ interface HierarchyTransformer {
   sensor_count: number;
 }
 
-const HierarchyTree: React.FC = () => {
+export default function HierarchyTree() {
   const { token } = useAuth();
   const [hierarchy, setHierarchy] = useState<HierarchyData[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
@@ -80,12 +78,19 @@ const HierarchyTree: React.FC = () => {
       return (
         <div key={item.id} className="ml-4">
           <div
-            className="flex items-center py-1 hover:bg-gray-100 cursor-pointer"
+            className="flex items-center py-1 hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700"
             onClick={() => toggleNode(nodeId)}
           >
             {item.depots || item.transformers ? (
               <span className="mr-1">
-                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                {isExpanded ?
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                  </svg> :
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                }
               </span>
             ) : (
               <span className="w-4 mr-1"></span>
@@ -93,27 +98,35 @@ const HierarchyTree: React.FC = () => {
 
             <div className="flex items-center">
               {item.depots ? (
-                <Building2 className="w-4 h-4 mr-2 text-blue-500" />
+                <svg className="w-4 h-4 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
               ) : item.transformers ? (
-                <Power className="w-4 h-4 mr-2 text-green-500" />
+                <svg className="w-4 h-4 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.002 4.002 0 003 15z"></path>
+                </svg>
               ) : (
-                <MapPin className="w-4 h-4 mr-2 text-blue-500" />
+                <svg className="w-4 h-4 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
               )}
 
-              <span className="font-medium">{item.name}</span>
+              <span className="font-medium text-black dark:text-white">{item.name}</span>
               {item.sensor_count !== undefined && (
-                <span className="ml-2 text-xs px-2 py-1 bg-gray-100 rounded-full">
+                <span className="ml-2 text-xs px-2 py-1 bg-gray-100 rounded-full dark:bg-gray-700">
                   {item.sensor_count} sensors
                 </span>
               )}
               {item.capacity !== undefined && (
-                <span className="ml-2 text-xs px-2 py-1 bg-gray-100 rounded-full">
+                <span className="ml-2 text-xs px-2 py-1 bg-gray-100 rounded-full dark:bg-gray-700">
                   {item.capacity} MVA
                 </span>
               )}
               {item.is_active !== undefined && (
                 <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                  item.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  item.is_active ? 'bg-success text-white' : 'bg-danger text-white'
                 }`}>
                   {item.is_active ? 'Active' : 'Inactive'}
                 </span>
@@ -126,31 +139,40 @@ const HierarchyTree: React.FC = () => {
               {item.depots.map(depot => (
                 <div key={depot.id} className="ml-4">
                   <div
-                    className="flex items-center py-1 hover:bg-gray-100 cursor-pointer"
+                    className="flex items-center py-1 hover:bg-gray-100 cursor-pointer dark:hover:bg-gray-700"
                     onClick={() => toggleNode(`${nodeId}-depot-${depot.id}`)}
                   >
                     <span className="mr-1">
                       {expandedNodes[`${nodeId}-depot-${depot.id}`] ?
-                        <ChevronDown size={16} /> :
-                        <ChevronRight size={16} />}
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                        </svg> :
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                      }
                     </span>
                     <div className="flex items-center">
-                      <Power className="w-4 h-4 mr-2 text-yellow-500" />
-                      <span>{depot.name}</span>
+                      <svg className="w-4 h-4 mr-2 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.002 4.002 0 003 15z"></path>
+                      </svg>
+                      <span className="text-black dark:text-white">{depot.name}</span>
                     </div>
                   </div>
 
                   {expandedNodes[`${nodeId}-depot-${depot.id}`] && depot.transformers && (
                     <div className="ml-4">
                       {depot.transformers.map(transformer => (
-                        <div key={transformer.id} className="flex items-center py-1 ml-4 hover:bg-gray-100">
-                          <Activity className="w-4 h-4 mr-2 text-yellow-500" />
-                          <span>{transformer.name}</span>
-                          <span className="ml-2 text-xs px-2 py-1 bg-gray-100 rounded-full">
+                        <div key={transformer.id} className="flex items-center py-1 ml-4 hover:bg-gray-100 dark:hover:bg-gray-700">
+                          <svg className="w-4 h-4 mr-2 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                          </svg>
+                          <span className="text-black dark:text-white">{transformer.name}</span>
+                          <span className="ml-2 text-xs px-2 py-1 bg-gray-100 rounded-full dark:bg-gray-700">
                             {transformer.sensor_count} sensors
                           </span>
                           <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                            transformer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            transformer.is_active ? 'bg-success text-white' : 'bg-danger text-white'
                           }`}>
                             {transformer.is_active ? 'Active' : 'Inactive'}
                           </span>
@@ -166,14 +188,16 @@ const HierarchyTree: React.FC = () => {
           {isExpanded && item.transformers && (
             <div className="ml-4">
               {item.transformers.map(transformer => (
-                <div key={transformer.id} className="flex items-center py-1 ml-4 hover:bg-gray-100">
-                  <Activity className="w-4 h-4 mr-2 text-yellow-500" />
-                  <span>{transformer.name}</span>
-                  <span className="ml-2 text-xs px-2 py-1 bg-gray-100 rounded-full">
+                <div key={transformer.id} className="flex items-center py-1 ml-4 hover:bg-gray-100 dark:hover:bg-gray-700">
+                  <svg className="w-4 h-4 mr-2 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                  </svg>
+                  <span className="text-black dark:text-white">{transformer.name}</span>
+                  <span className="ml-2 text-xs px-2 py-1 bg-gray-100 rounded-full dark:bg-gray-700">
                     {transformer.sensor_count} sensors
                   </span>
                   <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                    transformer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    transformer.is_active ? 'bg-success text-white' : 'bg-danger text-white'
                   }`}>
                     {transformer.is_active ? 'Active' : 'Inactive'}
                   </span>
@@ -207,10 +231,8 @@ const HierarchyTree: React.FC = () => {
       {hierarchy.length > 0 ? (
         renderHierarchy(hierarchy)
       ) : (
-        <p className="text-gray-500">No hierarchy data available</p>
+        <p className="text-gray-500 dark:text-gray-400">No hierarchy data available</p>
       )}
     </div>
   );
 };
-
-export default HierarchyTree;

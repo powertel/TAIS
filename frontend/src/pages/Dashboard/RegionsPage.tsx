@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
-import DashboardLayout from '../../layout/DashboardLayout';
 
 interface Region {
   id: number;
@@ -16,7 +15,7 @@ interface Region {
   }>;
 }
 
-const RegionsPage: React.FC = () => {
+export default function RegionsPage() {
   const { token } = useAuth();
   const [regions, setRegions] = useState<Region[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,13 +27,13 @@ const RegionsPage: React.FC = () => {
     const fetchRegions = async () => {
       try {
         setLoading(true);
-        
+
         const response = await axios.get(`${API_BASE_URL}/regions/`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
-        
+
         setRegions(response.data);
       } catch (err) {
         setError('Failed to fetch regions');
@@ -50,68 +49,52 @@ const RegionsPage: React.FC = () => {
   }, [token]);
 
   if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
-          <p>Loading regions...</p>
-        </div>
-      </DashboardLayout>
-    );
+    return <div className="p-4">Loading regions...</div>;
   }
 
   if (error) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
-          <p className="text-red-500">{error}</p>
-        </div>
-      </DashboardLayout>
-    );
+    return <div className="p-4 text-red-500">{error}</div>;
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-800">Regions</h1>
-          <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">
-            Add Region
-          </button>
-        </div>
-        
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {regions.map(region => (
-            <div key={region.id} className="p-6 bg-white rounded-lg shadow">
-              <h2 className="text-lg font-semibold text-gray-800">{region.name}</h2>
-              <p className="mt-2 text-gray-600">{region.description}</p>
-              
-              <div className="mt-4">
-                <h3 className="font-medium text-gray-700">Depots in this region:</h3>
-                <ul className="mt-2 space-y-1">
-                  {region.depots.slice(0, 3).map(depot => (
-                    <li key={depot.id} className="text-sm text-gray-600">
-                      {depot.name}
-                    </li>
-                  ))}
-                  {region.depots.length > 3 && (
-                    <li className="text-sm text-gray-500">
-                      +{region.depots.length - 3} more...
-                    </li>
-                  )}
-                </ul>
-              </div>
-              
-              <div className="mt-4">
-                <span className="inline-block px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded">
-                  {region.depots.length} Depots
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-black dark:text-white">Regions</h2>
+        <button className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90">
+          Add Region
+        </button>
       </div>
-    </DashboardLayout>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {regions.map(region => (
+          <div key={region.id} className="rounded-sm border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+            <h3 className="text-lg font-semibold text-black dark:text-white">{region.name}</h3>
+            <p className="mt-2 text-gray-500 dark:text-gray-400">{region.description}</p>
+
+            <div className="mt-4">
+              <h4 className="font-medium text-black dark:text-white">Depots in this region:</h4>
+              <ul className="mt-2 space-y-1">
+                {region.depots?.slice(0, 3).map(depot => (
+                  <li key={depot.id} className="text-sm text-gray-500 dark:text-gray-300">
+                    {depot.name}
+                  </li>
+                ))}
+                {region.depots && region.depots.length > 3 && (
+                  <li className="text-sm text-gray-400 dark:text-gray-400">
+                    +{region.depots.length - 3} more...
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            <div className="mt-4">
+              <span className="inline-block rounded bg-primary bg-opacity-10 px-2 py-1 text-xs font-semibold text-primary">
+                {region.depots.length} Depots
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
-
-export default RegionsPage;

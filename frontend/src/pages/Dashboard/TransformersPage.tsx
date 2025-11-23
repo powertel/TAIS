@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
-import DashboardLayout from '../../layout/DashboardLayout';
 
 interface Transformer {
   id: number;
@@ -15,7 +14,7 @@ interface Transformer {
   installation_date: string;
 }
 
-const TransformersPage: React.FC = () => {
+export default function TransformersPage() {
   const { token } = useAuth();
   const [transformers, setTransformers] = useState<Transformer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,13 +26,13 @@ const TransformersPage: React.FC = () => {
     const fetchTransformers = async () => {
       try {
         setLoading(true);
-        
+
         const response = await axios.get(`${API_BASE_URL}/transformers/`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
-        
+
         setTransformers(response.data);
       } catch (err) {
         setError('Failed to fetch transformers');
@@ -49,99 +48,93 @@ const TransformersPage: React.FC = () => {
   }, [token]);
 
   if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
-          <p>Loading transformers...</p>
-        </div>
-      </DashboardLayout>
-    );
+    return <div className="p-4">Loading transformers...</div>;
   }
 
   if (error) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
-          <p className="text-red-500">{error}</p>
-        </div>
-      </DashboardLayout>
-    );
+    return <div className="p-4 text-red-500">{error}</div>;
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-800">Transformers</h1>
-          <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">
-            Add Transformer
-          </button>
-        </div>
-        
-        <div className="overflow-x-auto bg-white rounded-lg shadow">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-black dark:text-white">Transformers</h2>
+        <button className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90">
+          Add Transformer
+        </button>
+      </div>
+
+      <div className="rounded-sm border border-stroke bg-white px-5 pb-2.5 pt-6 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:pb-1">
+        <div className="max-w-full overflow-x-auto">
+          <table className="w-full table-auto">
+            <thead>
+              <tr className="bg-gray-2 text-left dark:bg-meta-4">
+                <th className="min-w-[100px] py-4 px-4 font-medium text-black dark:text-white xl:pl-11">
                   ID
                 </th>
-                <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="min-w-[150px] py-4 px-4 font-medium text-black dark:text-white">
                   Name
                 </th>
-                <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="min-w-[150px] py-4 px-4 font-medium text-black dark:text-white">
                   Location
                 </th>
-                <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="min-w-[100px] py-4 px-4 font-medium text-black dark:text-white">
                   Capacity
                 </th>
-                <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="min-w-[100px] py-4 px-4 font-medium text-black dark:text-white">
                   Sensors
                 </th>
-                <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="min-w-[100px] py-4 px-4 font-medium text-black dark:text-white">
                   Status
                 </th>
-                <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="min-w-[150px] py-4 px-4 font-medium text-black dark:text-white">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {transformers.map((transformer) => (
-                <tr key={transformer.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{transformer.transformer_id}</div>
+            <tbody>
+              {transformers.map((transformer, key) => (
+                <tr key={key} className="border-b border-[#eee] dark:border-strokedark">
+                  <td className="py-5 px-4 dark:border-strokedark xl:pl-11">
+                    <p className="text-black dark:text-white">{transformer.transformer_id}</p>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{transformer.name}</div>
+                  <td className="py-5 px-4 dark:border-strokedark">
+                    <p className="text-black dark:text-white">{transformer.name}</p>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{transformer.depot_name}</div>
-                    <div className="text-sm text-gray-500">{transformer.region_name}</div>
+                  <td className="py-5 px-4 dark:border-strokedark">
+                    <p className="text-black dark:text-white">{transformer.depot_name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{transformer.region_name}</p>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transformer.capacity} MVA
+                  <td className="py-5 px-4 dark:border-strokedark">
+                    <p className="text-black dark:text-white">{transformer.capacity} MVA</p>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {transformer.sensor_count}
+                  <td className="py-5 px-4 dark:border-strokedark">
+                    <p className="text-black dark:text-white">{transformer.sensor_count}</p>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${transformer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  <td className="py-5 px-4 dark:border-strokedark">
+                    <p className={`inline-flex rounded-full bg-opacity-10 px-3 py-1 text-xs font-medium ${
+                      transformer.is_active
+                        ? 'bg-success text-success'
+                        : 'bg-danger text-danger'
+                    }`}>
                       {transformer.is_active ? 'Active' : 'Inactive'}
-                    </span>
+                    </p>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium whitespace-nowrap">
-                    <a 
-                      href={`/transformer/${transformer.id}`} 
-                      className="text-blue-600 hover:text-blue-900 mr-3"
-                    >
-                      View
-                    </a>
-                    <a 
-                      href={`/transformer/${transformer.id}/edit`} 
-                      className="text-indigo-600 hover:text-indigo-900"
-                    >
-                      Edit
-                    </a>
+                  <td className="py-5 px-4 dark:border-strokedark">
+                    <div className="flex items-center space-x-3.5">
+                      <a
+                        href={`/transformer/${transformer.id}`}
+                        className="text-primary hover:underline"
+                      >
+                        View
+                      </a>
+                      <a
+                        href={`/transformer/${transformer.id}/edit`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Edit
+                      </a>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -149,8 +142,6 @@ const TransformersPage: React.FC = () => {
           </table>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 };
-
-export default TransformersPage;

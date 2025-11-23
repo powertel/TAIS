@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useUserAccess } from '../../hooks/useUserAccess';
@@ -218,8 +218,8 @@ const TransformerDetail: React.FC = () => {
                 </div>
 
                 <div className="mt-2">
-                  <p className="text-sm text-gray-600 capitalize">{sensor.sensor_type.replace('_', ' ')}</p>
-                  <p className="text-sm text-gray-600">Readings: {sensor.readings_count}</p>
+                  <p className="text-sm text-gray-600 capitalize">{sensor.sensor_type ? sensor.sensor_type.replace('_', ' ') : 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Readings: {sensor.readings_count || 0}</p>
                 </div>
 
                 {sensor.latest_reading ? (

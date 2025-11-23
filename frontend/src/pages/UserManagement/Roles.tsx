@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axios from 'axios';
-import DashboardLayout from '../../layout/DashboardLayout';
 
 type Group = { id: number; name: string; permissions: number[] };
 type Permission = { id: number; name: string; codename: string; content_type: number };
 
-const Roles = () => {
+export default function Roles() {
   const { token } = useAuth();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
   const [groups, setGroups] = useState<Group[]>([]);
@@ -79,79 +78,67 @@ const Roles = () => {
   };
 
   if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
-          <p>Loading roles...</p>
-        </div>
-      </DashboardLayout>
-    );
+    return <div className="p-4">Loading roles...</div>;
   }
 
   if (error) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
-          <p className="text-red-500">{error}</p>
-        </div>
-      </DashboardLayout>
-    );
+    return <div className="p-4 text-red-500">{error}</div>;
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-800">Roles Management</h1>
-        </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Roles</h2>
+      </div>
 
-        <div className="flex gap-2">
-          <input
-            className="border rounded p-2 flex-grow max-w-md"
-            placeholder="Role name"
-            value={newRoleName}
-            onChange={e => setNewRoleName(e.target.value)}
-          />
-          <button
-            className="bg-blue-600 text-white rounded px-4 py-2"
-            onClick={createRole}
-          >
-            Create Role
-          </button>
-        </div>
+      <div className="flex gap-2">
+        <input
+          className="w-full rounded border border-stroke bg-gray px-4.5 py-2 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white flex-grow max-w-md"
+          placeholder="Role name"
+          value={newRoleName}
+          onChange={e => setNewRoleName(e.target.value)}
+        />
+        <button
+          className="bg-blue-600 text-white rounded px-4 py-2"
+          onClick={createRole}
+        >
+          Create Role
+        </button>
+      </div>
 
-        <div className="overflow-x-auto bg-white rounded-lg shadow">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+      <div className="rounded-sm border border-stroke bg-white px-5 pb-2.5 pt-6 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:pb-1">
+        <div className="max-w-full overflow-x-auto">
+          <table className="w-full table-auto">
+            <thead>
+              <tr className="bg-gray-2 text-left dark:bg-meta-4">
+                <th className="min-w-[150px] py-4 px-4 font-medium text-black dark:text-white xl:pl-11">
                   Name
                 </th>
-                <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="min-w-[250px] py-4 px-4 font-medium text-black dark:text-white">
                   Permissions
                 </th>
-                <th scope="col" className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                <th className="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {groups.map(g => (
-                <tr key={g.id} className="border-t">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={g.id} className="border-b border-[#eee] dark:border-strokedark">
+                  <td className="py-5 px-4 dark:border-strokedark xl:pl-11">
                     {editing?.id === g.id ? (
                       <input
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full rounded border border-stroke bg-gray px-4.5 py-2 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white"
                         value={editing.name}
                         onChange={e => setEditing({ ...editing, name: e.target.value })}
                       />
                     ) : (
-                      <div className="text-sm font-medium text-gray-900">{g.name}</div>
+                      <p className="text-black dark:text-white">{g.name}</p>
                     )}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="py-5 px-4 dark:border-strokedark">
                     {editing?.id === g.id ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-auto">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-auto p-2">
                         {permissions.map(p => (
                           <label key={p.id} className="flex items-center gap-2 p-1">
                             <input
@@ -165,41 +152,53 @@ const Roles = () => {
                         ))}
                       </div>
                     ) : (
-                      <span className="text-sm text-gray-500">{g.permissions.length} permissions assigned</span>
+                      <p className="text-sm text-gray-500">
+                        {g.permissions.length} permission{g.permissions.length !== 1 ? 's' : ''} assigned
+                      </p>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {editing?.id === g.id ? (
-                      <div className="space-x-2">
-                        <button
-                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                          onClick={() => updateRole(editing)}
-                        >
-                          Save
-                        </button>
-                        <button
-                          className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                          onClick={() => setEditing(null)}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-x-2">
-                        <button
-                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                          onClick={() => setEditing(g)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                          onClick={() => deleteRole(g.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
+                  <td className="py-5 px-4 dark:border-strokedark">
+                    <div className="flex items-center space-x-3.5">
+                      {editing?.id === g.id ? (
+                        <>
+                          <button
+                            className="hover:text-primary"
+                            onClick={() => updateRole(editing)}
+                          >
+                            <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M14.625 5.25L12.75 3.375L3.875 12.25H1.75V15.5H5V13.375L13.875 4.5L14.625 5.25ZM12.0547 4.00488L13.9951 3.00464L14.9954 4.94507L13.0549 5.94531L12.0547 4.00488Z" fill="" />
+                            </svg>
+                          </button>
+                          <button
+                            className="hover:text-danger"
+                            onClick={() => setEditing(null)}
+                          >
+                            <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M14.625 5.25L12.75 3.375L3.875 12.25H1.75V15.5H5V13.375L13.875 4.5L14.625 5.25ZM12.0547 4.00488L13.9951 3.00464L14.9954 4.94507L13.0549 5.94531L12.0547 4.00488Z" fill="" />
+                            </svg>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className="hover:text-primary"
+                            onClick={() => setEditing(g)}
+                          >
+                            <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M14.625 5.25L12.75 3.375L3.875 12.25H1.75V15.5H5V13.375L13.875 4.5L14.625 5.25ZM12.0547 4.00488L13.9951 3.00464L14.9954 4.94507L13.0549 5.94531L12.0547 4.00488Z" fill="" />
+                            </svg>
+                          </button>
+                          <button
+                            className="hover:text-danger"
+                            onClick={() => deleteRole(g.id)}
+                          >
+                            <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M14.625 5.25L12.75 3.375L3.875 12.25H1.75V15.5H5V13.375L13.875 4.5L14.625 5.25ZM12.0547 4.00488L13.9951 3.00464L14.9954 4.94507L13.0549 5.94531L12.0547 4.00488Z" fill="" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -207,8 +206,6 @@ const Roles = () => {
           </table>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 };
-
-export default Roles;

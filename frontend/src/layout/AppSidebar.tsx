@@ -90,7 +90,7 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={`fixed left-0 top-0 flex flex-col bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200
-        ${isExpanded || isMobileOpen ? "w-[290px]" : isHovered ? "w-[290px]" : "w-[90px]"}
+        ${isExpanded || isMobileOpen ? "w-[220px]" : "w-[90px]"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
@@ -98,7 +98,7 @@ const AppSidebar: React.FC = () => {
     >
       <div
         className={`py-8 flex ${
-          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+          !isExpanded ? "lg:justify-center" : "justify-start"
         }`}
       >
         <Link to="/">
@@ -136,12 +136,10 @@ const AppSidebar: React.FC = () => {
             <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "lg:justify-center"
-                    : "justify-start"
+                  !isExpanded ? "lg:justify-center" : "justify-start"
                 }`}
               >
-                {isExpanded || isHovered || isMobileOpen ? "MENU" : <MoreHorizontal className="size-6" />}
+                {isExpanded || isMobileOpen ? "" : <MoreHorizontal className="size-6" />}
               </h2>
 
               <ul className="flex flex-col gap-2">
@@ -160,9 +158,9 @@ const AppSidebar: React.FC = () => {
                           {item.icon}
                         </span>
                         <span className="flex-1 text-left">
-                          {(isExpanded || isHovered || isMobileOpen) && item.name}
+                          {(isExpanded || isMobileOpen) && item.name}
                         </span>
-                        {(isExpanded || isHovered || isMobileOpen) && (
+                        {(isExpanded || isMobileOpen) && (
                           <ChevronDown
                             className={`w-4 h-4 transition-transform duration-200 ${
                               openSubmenus[`main-${index}`] ? "rotate-180" : ""
@@ -183,7 +181,7 @@ const AppSidebar: React.FC = () => {
                           <span className="mr-3">
                             {item.icon}
                           </span>
-                          {(isExpanded || isHovered || isMobileOpen) && (
+                          {(isExpanded || isMobileOpen) && (
                             <span>{item.name}</span>
                           )}
                         </Link>

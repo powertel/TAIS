@@ -26,6 +26,11 @@ import Home from "./pages/Dashboard/Home";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ItemList from "./components/ItemList";
 import RequirePermission from "./components/RequirePermission";
+import DashboardHome from "./pages/Dashboard/DashboardHome";
+import TransformerDetail from "./pages/Dashboard/TransformerDetail";
+import RegionsPage from "./pages/Dashboard/RegionsPage";
+import DepotsPage from "./pages/Dashboard/DepotsPage";
+import TransformersPage from "./pages/Dashboard/TransformersPage";
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
@@ -39,7 +44,7 @@ const AppRoutes = () => {
           </PermissionProvider>
         }
       >
-        <Route index element={<Home />} />
+        <Route index element={<DashboardHome />} />
         <Route path="signin" element={<Navigate to="/" replace />} />
         <Route path="signup" element={<Navigate to="/" replace />} />
         <Route path="profile" element={<UserProfiles />} />
@@ -55,6 +60,10 @@ const AppRoutes = () => {
         <Route path="videos" element={<Videos />} />
         <Route path="line-chart" element={<LineChart />} />
         <Route path="bar-chart" element={<BarChart />} />
+        <Route path="regions" element={<RegionsPage />} />
+        <Route path="depots" element={<DepotsPage />} />
+        <Route path="transformers" element={<TransformersPage />} />
+        <Route path="transformer/:id" element={<TransformerDetail />} />
         <Route
           path="items"
           element={

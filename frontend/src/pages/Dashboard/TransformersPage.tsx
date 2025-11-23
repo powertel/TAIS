@@ -27,7 +27,7 @@ export default function TransformersPage() {
       try {
         setLoading(true);
 
-        const response = await axios.get(`${API_BASE_URL}/transformers/`, {
+        const response = await axios.get<Transformer[]>(`${API_BASE_URL}/transformers/`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -45,7 +45,7 @@ export default function TransformersPage() {
     if (token) {
       fetchTransformers();
     }
-  }, [token]);
+  }, [token, API_BASE_URL]);
 
   if (loading) {
     return <div className="p-4">Loading transformers...</div>;
@@ -64,76 +64,47 @@ export default function TransformersPage() {
         </button>
       </div>
 
-      <div className="rounded-sm border border-stroke bg-white px-5 pb-2.5 pt-6 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:pb-1">
+      <div className="rounded-2xl bg-white/80 p-5 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
         <div className="max-w-full overflow-x-auto">
-          <table className="w-full table-auto">
-            <thead>
-              <tr className="bg-gray-2 text-left dark:bg-meta-4">
-                <th className="min-w-[100px] py-4 px-4 font-medium text-black dark:text-white xl:pl-11">
-                  ID
-                </th>
-                <th className="min-w-[150px] py-4 px-4 font-medium text-black dark:text-white">
-                  Name
-                </th>
-                <th className="min-w-[150px] py-4 px-4 font-medium text-black dark:text-white">
-                  Location
-                </th>
-                <th className="min-w-[100px] py-4 px-4 font-medium text-black dark:text-white">
-                  Capacity
-                </th>
-                <th className="min-w-[100px] py-4 px-4 font-medium text-black dark:text-white">
-                  Sensors
-                </th>
-                <th className="min-w-[100px] py-4 px-4 font-medium text-black dark:text-white">
-                  Status
-                </th>
-                <th className="min-w-[150px] py-4 px-4 font-medium text-black dark:text-white">
-                  Actions
-                </th>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">ID</th>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Name</th>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Location</th>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Capacity</th>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Sensors</th>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Status</th>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {transformers.map((transformer, key) => (
-                <tr key={key} className="border-b border-[#eee] dark:border-strokedark">
-                  <td className="py-5 px-4 dark:border-strokedark xl:pl-11">
-                    <p className="text-black dark:text-white">{transformer.transformer_id}</p>
+              {transformers.map((t) => (
+                <tr key={t.id} className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
+                  <td className="px-4 py-2">
+                    <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">{t.transformer_id}</span>
                   </td>
-                  <td className="py-5 px-4 dark:border-strokedark">
-                    <p className="text-black dark:text-white">{transformer.name}</p>
+                  <td className="px-4 py-2">
+                    <span className="font-medium text-gray-900 dark:text-white">{t.name}</span>
                   </td>
-                  <td className="py-5 px-4 dark:border-strokedark">
-                    <p className="text-black dark:text-white">{transformer.depot_name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{transformer.region_name}</p>
+                  <td className="px-4 py-2">
+                    <div className="text-gray-800 dark:text-gray-100">{t.depot_name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{t.region_name}</div>
                   </td>
-                  <td className="py-5 px-4 dark:border-strokedark">
-                    <p className="text-black dark:text-white">{transformer.capacity} MVA</p>
+                  <td className="px-4 py-2">
+                    <span className="text-gray-800 dark:text-gray-100">{t.capacity} MVA</span>
                   </td>
-                  <td className="py-5 px-4 dark:border-strokedark">
-                    <p className="text-black dark:text-white">{transformer.sensor_count}</p>
+                  <td className="px-4 py-2">
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">{t.sensor_count}</span>
                   </td>
-                  <td className="py-5 px-4 dark:border-strokedark">
-                    <p className={`inline-flex rounded-full bg-opacity-10 px-3 py-1 text-xs font-medium ${
-                      transformer.is_active
-                        ? 'bg-success text-success'
-                        : 'bg-danger text-danger'
-                    }`}>
-                      {transformer.is_active ? 'Active' : 'Inactive'}
-                    </p>
+                  <td className="px-4 py-2">
+                    <span className={`mr-2 inline-block h-2 w-2 rounded-full ${t.is_active ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${t.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
                   </td>
-                  <td className="py-5 px-4 dark:border-strokedark">
-                    <div className="flex items-center space-x-3.5">
-                      <a
-                        href={`/transformer/${transformer.id}`}
-                        className="text-primary hover:underline"
-                      >
-                        View
-                      </a>
-                      <a
-                        href={`/transformer/${transformer.id}/edit`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        Edit
-                      </a>
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <a href={`/transformer/${t.id}`} className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">View</a>
+                      <a href={`/transformer/${t.id}/edit`} className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">Edit</a>
                     </div>
                   </td>
                 </tr>

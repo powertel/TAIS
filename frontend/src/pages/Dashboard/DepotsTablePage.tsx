@@ -176,20 +176,23 @@ export default function DepotsTablePage() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                      <th className="px-4 py-2 text-left font-semibold">Transformer</th>
-                      <th className="px-4 py-2 text-left font-semibold">ID</th>
-                      <th className="px-4 py-2 text-left font-semibold">Status</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Transformer</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">ID</th>
+                      <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(selectedDepot.transformers || []).map((t) => (
-                      <tr key={t.id} className="border-t border-gray-200 dark:border-gray-700">
-                        <td className="px-4 py-2">{t.name}</td>
-                        <td className="px-4 py-2 text-gray-600 dark:text-gray-300">{t.transformer_id}</td>
+                      <tr key={t.id} className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
                         <td className="px-4 py-2">
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${t.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
-                            {t.is_active ? 'Active' : 'Inactive'}
-                          </span>
+                          <span className="font-medium text-gray-900 dark:text-white">{t.name}</span>
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">{t.transformer_id}</span>
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className={`mr-2 inline-block h-2 w-2 rounded-full ${t.is_active ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${t.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
                         </td>
                       </tr>
                     ))}

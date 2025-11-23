@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useUserAccess } from '../../hooks/useUserAccess';
 import axios from 'axios';
@@ -59,6 +59,18 @@ export default function DashboardHome() {
   const [error, setError] = useState<string | null>(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+  const groupedTransformers = useMemo(() => {
+    const regions: Record<string, Record<string, TransformerStatus[]>> = {};
+    transformers.forEach((t) => {
+      const region = t.region_name || 'Unknown Region';
+      const depot = t.depot_name || 'Unknown Depot';
+      if (!regions[region]) regions[region] = {};
+      if (!regions[region][depot]) regions[region][depot] = [];
+      regions[region][depot].push(t);
+    });
+    return regions;
+  }, [transformers]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -245,7 +257,7 @@ export default function DashboardHome() {
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Left Side: Hierarchy Tree - conditionally render based on access level */}
         {(hasNationalAccess() || hasRegionAccess()) && (
-          <div className="lg:w-1/2 rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
+          <div className="lg:w-1/3 xl:w-1/4 rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Infrastructure Hierarchy</h3>
               <div className="flex items-center space-x-2">
@@ -254,19 +266,46 @@ export default function DashboardHome() {
               </div>
             </div>
             <div className="h-96 overflow-y-auto rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:border-gray-700/50 dark:from-gray-900/50 dark:to-gray-800/50">
-              <Suspense fallback={
-                <div className="flex h-full items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
-                </div>
-              }>
-                <HierarchyVisualization onTransformerSelect={handleTransformerSelect} />
-              </Suspense>
+              {Object.entries(groupedTransformers).map(([region, depots]) => (
+                <details key={region} className="mb-3 group" open>
+                  <summary className="flex items-center justify-between cursor-pointer rounded-xl px-3 py-2 bg-gradient-to-r from-brand-100 to-brand-300 text-brand-800 shadow-sm dark:from-brand-900/30 dark:to-brand-800/30 dark:text-brand-200 border border-brand-300/40 dark:border-brand-700/50">
+                    <span className="font-semibold">{region}</span>
+                    <span className="text-xs font-medium text-brand-600 dark:text-brand-300">{Object.values(depots).reduce((acc, d) => acc + d.length, 0)} transformers</span>
+                  </summary>
+                  <div className="mt-2 pl-2">
+                    {Object.entries(depots).map(([depot, list]) => (
+                      <details key={depot} className="mb-2" open>
+                        <summary className="flex items-center justify-between cursor-pointer rounded-lg px-3 py-2 bg-gradient-to-r from-blue-light-100 to-blue-light-300 text-blue-light-800 shadow-sm dark:from-blue-light-900/30 dark:to-blue-light-800/30 dark:text-blue-light-200 border border-blue-light-300/40 dark:border-blue-light-700/50">
+                          <span className="font-medium">{depot}</span>
+                          <span className="text-xs font-medium">{list.length}</span>
+                        </summary>
+                        <ul className="mt-2 space-y-2">
+                          {list.map((t) => (
+                            <li key={t.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white/80 shadow-sm hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 transition">
+                              <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id)}>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</span>
+                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.is_active ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20' : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">ID: {t.transformer_id} • {t.capacity} MVA • {t.sensor_count} sensors</div>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    ))}
+                  </div>
+                </details>
+              ))}
+              {Object.keys(groupedTransformers).length === 0 && (
+                <div className="flex h-full items-center justify-center text-sm text-gray-500 dark:text-gray-400">No transformers available</div>
+              )}
             </div>
           </div>
         )}
 
         {/* Right Side: Selected Transformer Details */}
-        <div className={`${(hasNationalAccess() || hasRegionAccess()) ? 'lg:w-1/2' : 'lg:w-full'}`}>
+        <div className={`${(hasNationalAccess() || hasRegionAccess()) ? 'lg:w-2/3 xl:w-3/4' : 'lg:w-full'}`}>
           <div className="rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Transformer Details</h3>
@@ -296,11 +335,11 @@ export default function DashboardHome() {
                     </div>
 
                     <div className="mt-6 grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-gradient-to-br from-brand-50 to-brand-100 rounded-xl shadow-sm dark:from-brand-900/30 dark:to-brand-800/30 border border-brand-200/50 dark:border-brand-700/50">
+                      <div className="p-4 bg-gradient-to-br from-brand-100 to-brand-300 rounded-xl shadow-sm dark:from-brand-900/30 dark:to-brand-800/30 border border-brand-300/40 dark:border-brand-700/50">
                         <p className="text-xs font-medium text-brand-600 dark:text-brand-400">Capacity</p>
                         <p className="text-2xl font-bold text-brand-800 dark:text-brand-200">{selectedTransformer.capacity} MVA</p>
                       </div>
-                      <div className="p-4 bg-gradient-to-br from-blue-light-50 to-blue-light-100 rounded-xl shadow-sm dark:from-blue-light-900/30 dark:to-blue-light-800/30 border border-blue-light-200/50 dark:border-blue-light-700/50">
+                      <div className="p-4 bg-gradient-to-br from-blue-light-100 to-blue-light-300 rounded-xl shadow-sm dark:from-blue-light-900/30 dark:to-blue-light-800/30 border border-blue-light-300/40 dark:border-blue-light-700/50">
                         <p className="text-xs font-medium text-blue-light-600 dark:text-blue-light-400">Sensors</p>
                         <p className="text-2xl font-bold text-blue-light-800 dark:text-blue-light-200">{selectedTransformer.sensor_count}</p>
                       </div>

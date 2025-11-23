@@ -2,22 +2,26 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 
-interface Region {
+interface HierarchyRegion {
   id: number;
   name: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
-  depots: Array<{
+  description?: string;
+  depots?: Array<{
     id: number;
     name: string;
-    description: string;
+    description?: string;
+    transformers?: Array<{
+      id: number;
+      name: string;
+      transformer_id: string;
+      is_active: boolean;
+    }>;
   }>;
 }
 
 export default function RegionsPage() {
   const { token } = useAuth();
-  const [regions, setRegions] = useState<Region[]>([]);
+  const [regions, setRegions] = useState<HierarchyRegion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,12 +32,13 @@ export default function RegionsPage() {
       try {
         setLoading(true);
 
-        const response = await axios.get(`${API_BASE_URL}/regions/`, {
+        const response = await axios.get(`${API_BASE_URL}/dashboard/hierarchy/`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
 
+        // The hierarchy returns the full structure, so we just need to set it
         setRegions(response.data);
       } catch (err) {
         setError('Failed to fetch regions');

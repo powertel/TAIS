@@ -2,13 +2,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 
-interface Depot {
+interface HierarchyDepot {
   id: number;
   name: string;
   region_name: string;
   description: string;
-  created_at: string;
-  updated_at: string;
   transformers: Array<{
     id: number;
     name: string;
@@ -19,7 +17,7 @@ interface Depot {
 
 export default function DepotsPage() {
   const { token } = useAuth();
-  const [depots, setDepots] = useState<Depot[]>([]);
+  const [depots, setDepots] = useState<HierarchyDepot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,13 +28,26 @@ export default function DepotsPage() {
       try {
         setLoading(true);
 
-        const response = await axios.get(`${API_BASE_URL}/depots/`, {
+        const response = await axios.get(`${API_BASE_URL}/dashboard/hierarchy/`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
 
-        setDepots(response.data);
+        // Flatten the hierarchy to get all depots
+        const allDepots: HierarchyDepot[] = [];
+        response.data.forEach((region: any) => {
+          if (region.depots) {
+            region.depots.forEach((depot: any) => {
+              allDepots.push({
+                ...depot,
+                region_name: region.name
+              });
+            });
+          }
+        });
+
+        setDepots(allDepots);
       } catch (err) {
         setError('Failed to fetch depots');
         console.error('Error fetching depots:', err);

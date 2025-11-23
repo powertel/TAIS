@@ -142,7 +142,11 @@ export default function DashboardHome() {
       {/* Welcome Message */}
       <div className="rounded-sm border border-stroke bg-white px-5 pb-2.5 pt-6 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:pb-1">
         <h2 className="text-title-md2 font-semibold text-black dark:text-white">
-          Good Morning, {user?.first_name || user?.username}! 👋
+          {(() => {
+            const hour = new Date().getHours();
+            const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+            return `${greeting}, ${user?.first_name || user?.username}! 👋`;
+          })()}
         </h2>
         <p className="text-sm font-medium text-black dark:text-white">
           Your access level: <span className="text-primary">{userAccessLevel()}</span>

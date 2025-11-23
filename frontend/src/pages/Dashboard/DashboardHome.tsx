@@ -265,7 +265,7 @@ export default function DashboardHome() {
                 <span className="text-sm text-brand-600 dark:text-brand-400">Live</span>
               </div>
             </div>
-            <div className="h-96 overflow-y-auto rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:border-gray-700/50 dark:from-gray-900/50 dark:to-gray-800/50">
+            <div className="rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:border-gray-700/50 dark:from-gray-900/50 dark:to-gray-800/50">
               {Object.entries(groupedTransformers).map(([region, depots]) => (
                 <details key={region} className="mb-3 group" open>
                   <summary className="flex items-center justify-between cursor-pointer rounded-xl px-3 py-2 bg-gradient-to-r from-brand-100 to-brand-300 text-brand-800 shadow-sm dark:from-brand-900/30 dark:to-brand-800/30 dark:text-brand-200 border border-brand-300/40 dark:border-brand-700/50">
@@ -311,7 +311,7 @@ export default function DashboardHome() {
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Transformer Details</h3>
               <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
             </div>
-            <div className="h-96 overflow-y-auto rounded-xl bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:from-gray-900/50 dark:to-gray-800/50">
+            <div className="rounded-xl bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:from-gray-900/50 dark:to-gray-800/50">
               {selectedTransformer ? (
                 <div className="space-y-3">
                   {/* Header Card */}

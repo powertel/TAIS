@@ -29,7 +29,7 @@ import RequirePermission from "./components/RequirePermission";
 import DashboardHome from "./pages/Dashboard/DashboardHome";
 import TransformerDetail from "./pages/Dashboard/TransformerDetail";
 import RegionsPage from "./pages/Dashboard/RegionsPage";
-import DepotsPage from "./pages/Dashboard/DepotsPage";
+import DepotsTablePage from "./pages/Dashboard/DepotsTablePage";
 import TransformersPage from "./pages/Dashboard/TransformersPage";
 
 const AppRoutes = () => {
@@ -61,7 +61,7 @@ const AppRoutes = () => {
         <Route path="line-chart" element={<LineChart />} />
         <Route path="bar-chart" element={<BarChart />} />
         <Route path="regions" element={<RegionsPage />} />
-        <Route path="depots" element={<DepotsPage />} />
+        <Route path="depots" element={<DepotsTablePage />} />
         <Route path="transformers" element={<TransformersPage />} />
         <Route path="transformer/:id" element={<TransformerDetail />} />
         <Route

@@ -77,15 +77,21 @@ export default function DepotsPage() {
             <div className="mt-4">
               <h4 className="font-medium text-black dark:text-white">Transformers in this depot:</h4>
               <ul className="mt-2 space-y-1">
-                {depot.transformers?.slice(0, 3).map(transformer => (
-                  <li key={transformer.id} className="text-sm text-gray-500 dark:text-gray-300">
-                    {transformer.name} ({transformer.transformer_id}) -
-                    <span className={`${transformer.is_active ? 'text-success' : 'text-danger'}`}>
-                      {transformer.is_active ? ' Active' : ' Inactive'}
-                    </span>
+                {depot.transformers && Array.isArray(depot.transformers) ? (
+                  depot.transformers.slice(0, 3).map(transformer => (
+                    <li key={transformer.id} className="text-sm text-gray-500 dark:text-gray-300">
+                      {transformer.name} ({transformer.transformer_id}) -
+                      <span className={`${transformer.is_active ? 'text-success' : 'text-danger'}`}>
+                        {transformer.is_active ? ' Active' : ' Inactive'}
+                      </span>
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-sm text-gray-500 dark:text-gray-400">
+                    No transformers available
                   </li>
-                ))}
-                {depot.transformers && depot.transformers.length > 3 && (
+                )}
+                {depot.transformers && Array.isArray(depot.transformers) && depot.transformers.length > 3 && (
                   <li className="text-sm text-gray-400 dark:text-gray-400">
                     +{depot.transformers.length - 3} more...
                   </li>
@@ -95,7 +101,7 @@ export default function DepotsPage() {
 
             <div className="mt-4 flex justify-between">
               <span className="inline-block rounded bg-primary bg-opacity-10 px-2 py-1 text-xs font-semibold text-primary">
-                {depot.transformers.length} Transformers
+                {depot.transformers?.length || 0} Transformers
               </span>
               <a
                 href={`/depot/${depot.id}`}

@@ -74,12 +74,18 @@ export default function RegionsPage() {
             <div className="mt-4">
               <h4 className="font-medium text-black dark:text-white">Depots in this region:</h4>
               <ul className="mt-2 space-y-1">
-                {region.depots?.slice(0, 3).map(depot => (
-                  <li key={depot.id} className="text-sm text-gray-500 dark:text-gray-300">
-                    {depot.name}
+                {region.depots && Array.isArray(region.depots) ? (
+                  region.depots.slice(0, 3).map(depot => (
+                    <li key={depot.id} className="text-sm text-gray-500 dark:text-gray-300">
+                      {depot.name}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-sm text-gray-500 dark:text-gray-400">
+                    No depots available
                   </li>
-                ))}
-                {region.depots && region.depots.length > 3 && (
+                )}
+                {region.depots && Array.isArray(region.depots) && region.depots.length > 3 && (
                   <li className="text-sm text-gray-400 dark:text-gray-400">
                     +{region.depots.length - 3} more...
                   </li>
@@ -89,7 +95,7 @@ export default function RegionsPage() {
 
             <div className="mt-4">
               <span className="inline-block rounded bg-primary bg-opacity-10 px-2 py-1 text-xs font-semibold text-primary">
-                {region.depots.length} Depots
+                {region.depots?.length || 0} Depots
               </span>
             </div>
           </div>

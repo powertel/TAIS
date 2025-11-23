@@ -53,9 +53,6 @@ export default function Users() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const [search, setSearch] = useState('');
 
   // Form states
   const [showForm, setShowForm] = useState(false);
@@ -339,54 +336,11 @@ export default function Users() {
     return <div className="p-4 text-red-500">{error}</div>;
   }
 
-  const q = search.trim().toLowerCase();
-  const filteredUsers = users.filter(user => {
-    if (!q) return true;
-    const profile = userProfiles[user.id];
-    const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-    const roles = (user.groups || [])
-      .map(id => groups.find(g => g.id === id)?.name || '')
-      .join(' ');
-    const accessLevel = profile?.is_national_level
-      ? 'national'
-      : profile?.is_region_level
-        ? 'region'
-        : profile?.is_depot_level
-          ? 'depot'
-          : 'limited';
-    return (
-      name.toLowerCase().includes(q) ||
-      (user.username || '').toLowerCase().includes(q) ||
-      (user.email || '').toLowerCase().includes(q) ||
-      (profile?.region_name || '').toLowerCase().includes(q) ||
-      (profile?.depot_name || '').toLowerCase().includes(q) ||
-      roles.toLowerCase().includes(q) ||
-      accessLevel.includes(q) ||
-      (user.is_active ? 'active' : 'inactive').includes(q)
-    );
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
-  const pagedUsers = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold">Users</h2>
-          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-            {filteredUsers.length} Total
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search users..."
-            className="w-56 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-          />
-          <button
+        <h2 className="text-xl font-semibold">Users</h2>
+        <button
           onClick={() => {
             setEditingUser(null);
             setNewUser({
@@ -441,7 +395,7 @@ export default function Users() {
               </tr>
             </thead>
             <tbody>
-              {pagedUsers.map(user => {
+              {users.map(user => {
                 const profile = userProfiles[user.id];
                 let accessLevel = 'Limited';
                 if (profile?.is_national_level) accessLevel = 'National';
@@ -513,25 +467,6 @@ export default function Users() {
               })}
             </tbody>
           </table>
-        </div>
-        <div className="flex items-center justify-between p-3">
-          <div className="text-xs text-gray-600 dark:text-gray-400">Page {page} of {totalPages}</div>
-          <div className="flex items-center gap-2">
-            <button
-              className="rounded-md bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-              disabled={page === 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </button>
-            <button
-              className="rounded-md bg-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Next
-            </button>
-          </div>
         </div>
       </div>
 
@@ -789,4 +724,4 @@ export default function Users() {
       )}
     </div>
   );
-};
+};"export default Users;" 

@@ -22,7 +22,7 @@ export default function SignInForm() {
     setLoading(true);
     setError("");
 
-    const success = await login(username, password);
+    const success = await login(username, password, isChecked);
     if (success) {
       navigate("/", { replace: true });
     } else {

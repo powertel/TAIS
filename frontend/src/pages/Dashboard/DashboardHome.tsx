@@ -73,6 +73,9 @@ export default function DashboardHome() {
     return regions;
   }, [transformers]);
 
+  const [openRegions, setOpenRegions] = useState<Record<string, boolean>>({});
+  const [openDepots, setOpenDepots] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -108,7 +111,7 @@ export default function DashboardHome() {
     }
   }, [token]);
 
-  const handleTransformerSelect = async (transformerId: number) => {
+  const handleTransformerSelect = async (transformerId: number, regionName?: string, depotName?: string) => {
     console.log('Transformer clicked:', transformerId); // Debug log
     try {
       setLoading(true); // Set loading state while fetching transformer details
@@ -120,7 +123,11 @@ export default function DashboardHome() {
 
       console.log('Transformer details fetched:', response.data); // Debug log
       setSelectedTransformer(response.data);
-    } catch (err: any) {
+      if (regionName && depotName) {
+        setOpenRegions({ [regionName]: true });
+        setOpenDepots({ [`${regionName}::${depotName}`]: true });
+      }
+  } catch (err: any) {
       console.error('Error fetching transformer details:', err);
       setError(`Failed to fetch transformer details: ${err.response?.status} - ${err.response?.data?.error || 'Unknown error'}`);
       // Log more details to help debug
@@ -268,38 +275,40 @@ export default function DashboardHome() {
             </div>
             <div className="h-screen overflow-y-auto scrollbar-white rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:border-gray-700/50 dark:from-gray-900/50 dark:to-gray-800/50">
               {Object.entries(groupedTransformers).map(([region, depots]) => (
-                <details key={region} className="mb-3 group" open>
-                  <summary className="flex items-center justify-between cursor-pointer rounded-lg px-3 py-2 bg-white/80 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-100 dark:hover:bg-gray-700 transition group-open:ring-2 group-open:ring-blue-200/60 dark:group-open:ring-gray-700/60">
+                <details key={region} className="mb-3 group" open={!!openRegions[region]}>
+                  <summary onClick={(e) => { e.preventDefault(); setOpenRegions(prev => ({ ...prev, [region]: !prev[region] })); }} className="flex items-center justify-between cursor-pointer rounded-lg px-3 py-2 bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100 transition dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800">
                     <div className="flex items-center gap-2">
-                      <MapPinned className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      <span className="font-medium text-gray-900 dark:text-white">{region}</span>
+                      <MapPinned className="w-4 h-4" />
+                      <span className="font-medium">{region}</span>
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">Region</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
                         {Object.values(depots).reduce((acc, d) => acc + d.length, 0)}
                       </span>
-                      <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform group-open:rotate-180" />
+                      <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
                     </div>
                   </summary>
-                  <div className="mt-2 pl-2">
+                  <div className="mt-2 pl-4 border-l-2 border-blue-100 dark:border-blue-900/40">
                     {Object.entries(depots).map(([depot, list]) => (
-                      <details key={depot} className="mb-2 group" open>
-                        <summary className="flex items-center justify-between cursor-pointer rounded-md px-3 py-2 bg-white/80 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-100 dark:hover:bg-gray-700 transition group-open:ring-2 group-open:ring-blue-200/60 dark:group-open:ring-gray-700/60">
+                      <details key={depot} className="mb-2 group" open={!!openDepots[`${region}::${depot}`]}>
+                        <summary onClick={(e) => { e.preventDefault(); setOpenDepots(prev => ({ ...prev, [`${region}::${depot}`]: !prev[`${region}::${depot}`] })); }} className="flex items-center justify-between cursor-pointer rounded-md px-3 py-2 bg-indigo-50 text-indigo-800 border border-indigo-200 hover:bg-indigo-100 transition dark:bg-indigo-900/30 dark:text-indigo-200 dark:border-indigo-800">
                           <div className="flex items-center gap-2">
-                            <Warehouse className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            <span className="font-medium text-gray-900 dark:text-white">{depot}</span>
+                            <Warehouse className="w-4 h-4" />
+                            <span className="font-medium">{depot}</span>
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">Depot</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
                               {list.length}
                             </span>
-                            <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform group-open:rotate-180" />
+                            <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
                           </div>
                         </summary>
                         <ul className="mt-2 space-y-2">
                           {list.map((t) => (
                             <li key={t.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white shadow-sm hover:shadow-md border border-gray-200/60 dark:border-gray-700/60 dark:bg-gray-800 transition">
-                              <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id)}>
+                              <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id, region, depot)}>
                                 <div className="flex items-center gap-2">
                                   <Zap className={`w-4 h-4 ${t.is_active ? 'text-success' : 'text-danger'}`} />
                                   <span className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</span>

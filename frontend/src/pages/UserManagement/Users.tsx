@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axios from 'axios';
+import type { AxiosError } from 'axios';
 
-type User = {
+// Types
+interface User {
   id: number;
   username: string;
   email: string;
@@ -13,9 +15,9 @@ type User = {
   is_staff: boolean;
   is_superuser: boolean;
   groups: number[];
-};
+}
 
-type UserProfile = {
+interface UserProfile {
   id: number;
   user: number;
   region: number | null;
@@ -25,27 +27,48 @@ type UserProfile = {
   is_depot_level: boolean;
   region_name?: string;
   depot_name?: string;
-};
+}
 
-type Region = {
+interface Region {
   id: number;
   name: string;
-};
+}
 
-type Depot = {
+interface Depot {
   id: number;
   name: string;
   region: number;
-};
+}
 
-type Group = {
+interface Group {
   id: number;
   name: string;
-};
+}
+
+interface UserFormData {
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  password: string;
+  is_active: boolean;
+  is_staff: boolean;
+  groups: number[];
+}
+
+interface ProfileFormData {
+  region: number | null;
+  depot: number | null;
+  is_national_level: boolean;
+  is_region_level: boolean;
+  is_depot_level: boolean;
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const ITEMS_PER_PAGE = 10;
 
 export default function Users() {
   const { token } = useAuth();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
   const [users, setUsers] = useState<User[]>([]);
   const [userProfiles, setUserProfiles] = useState<Record<number, UserProfile>>({});
   const [regions, setRegions] = useState<Region[]>([]);
@@ -53,414 +76,383 @@ export default function Users() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Form states
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState({
-    username: "",
-    email: "",
-    first_name: "",
-    last_name: "",
-    password: "",
+
+  const [formData, setFormData] = useState<UserFormData>({
+    username: '',
+    email: '',
+    first_name: '',
+    last_name: '',
+    password: '',
     is_active: true,
     is_staff: false,
-    groups: [] as number[],
+    groups: [],
   });
 
-  const [newProfile, setNewProfile] = useState({
-    region: null as number | null,
-    depot: null as number | null,
+  const [profileData, setProfileData] = useState<ProfileFormData>({
+    region: null,
+    depot: null,
     is_national_level: false,
     is_region_level: false,
     is_depot_level: false,
   });
 
-  const fetchData = async () => {
+  // Fetch data
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
 
-      // Fetch users
-      const usersResponse = await axios.get(`${API_BASE_URL}/users/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      setUsers(Array.isArray(usersResponse.data) ? usersResponse.data : []);
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const [
+        usersRes,
+        profilesRes,
+        regionsRes,
+        depotsRes,
+        groupsRes
+      ] = await Promise.all([
+        axios.get<User[]>(`${API_BASE_URL}/users/`, { headers }),
+        axios.get<UserProfile[]>(`${API_BASE_URL}/user-profiles/`, { headers }),
+        axios.get<Region[]>(`${API_BASE_URL}/regions/`, { headers }),
+        axios.get<Depot[]>(`${API_BASE_URL}/depots/`, { headers }),
+        axios.get<Group[]>(`${API_BASE_URL}/groups/`, { headers })
+      ]);
 
-      // Fetch user profiles
-      const profilesResponse = await axios.get(`${API_BASE_URL}/user-profiles/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      // Create a map of user_id to profile for quick access
-      const profileMap: Record<number, UserProfile> = {};
-      profilesResponse.data.forEach((profile: UserProfile) => {
-        profileMap[profile.user] = profile;
-      });
-      setUserProfiles(profileMap);
-
-      // Fetch regions and depots for the form
-      const regionsResponse = await axios.get(`${API_BASE_URL}/regions/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      setRegions(Array.isArray(regionsResponse.data) ? regionsResponse.data : []);
-
-      const depotsResponse = await axios.get(`${API_BASE_URL}/depots/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      setDepots(Array.isArray(depotsResponse.data) ? depotsResponse.data : []);
-
-      // Fetch groups/roles for the form
-      const groupsResponse = await axios.get(`${API_BASE_URL}/groups/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      setGroups(Array.isArray(groupsResponse.data) ? groupsResponse.data : []);
-
+      setUsers(usersRes.data);
+      setUserProfiles(
+        profilesRes.data.reduce((acc, profile) => ({ ...acc, [profile.user]: profile }), {})
+      );
+      setRegions(regionsRes.data);
+      setDepots(depotsRes.data);
+      setGroups(groupsRes.data);
     } catch (err) {
-      setError('Failed to fetch data');
-      console.error('Error fetching data:', err);
+      const error = err as AxiosError;
+      setError(error.message || 'Failed to fetch data');
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Filter and paginate users
+  const filteredUsers = users.filter(user => {
+    const query = search.toLowerCase();
+    if (!query) return true;
+    
+    return (
+      user.username.toLowerCase().includes(query) ||
+      user.email.toLowerCase().includes(query) ||
+      (user.first_name?.toLowerCase().includes(query) ?? false) ||
+      (user.last_name?.toLowerCase().includes(query) ?? false) ||
+      (user.is_active ? 'active' : 'inactive').includes(query) ||
+      (user.is_staff ? 'staff' : '').includes(query)
+    );
+  });
 
-    try {
-      let userResponse;
+  const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
+  const paginatedUsers = filteredUsers.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE
+  );
 
-      if (editingUser) {
-        // Update existing user
-        userResponse = await axios.patch(`${API_BASE_URL}/users/${editingUser.id}/`, {
-          username: newUser.username,
-          email: newUser.email,
-          first_name: newUser.first_name,
-          last_name: newUser.last_name,
-          is_active: newUser.is_active,
-          is_staff: newUser.is_staff,
-          groups: newUser.groups,
-        }, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      } else {
-        // Create new user
-        userResponse = await axios.post(`${API_BASE_URL}/users/`, {
-          username: newUser.username,
-          email: newUser.email,
-          first_name: newUser.first_name,
-          last_name: newUser.last_name,
-          password: newUser.password,
-          is_active: newUser.is_active,
-          is_staff: newUser.is_staff,
-          groups: newUser.groups,
-        }, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      }
-
-      // Update or create profile
-      const userId = editingUser ? editingUser.id : userResponse.data.id;
-      const profileData = {
-        user: userId,
-        region: newProfile.region,
-        depot: newProfile.depot,
-        is_national_level: newProfile.is_national_level,
-        is_region_level: newProfile.is_region_level,
-        is_depot_level: newProfile.is_depot_level,
-      };
-
-      // Check if profile already exists
-      const existingProfile = userProfiles[userId];
-      if (existingProfile) {
-        // Update existing profile
-        await axios.patch(`${API_BASE_URL}/user-profiles/${existingProfile.id}/`, profileData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      } else {
-        // Create new profile
-        await axios.post(`${API_BASE_URL}/user-profiles/`, profileData, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      }
-
-      // Refresh data
-      fetchData();
-
-      // Reset form
-      setShowForm(false);
-      setEditingUser(null);
-      setNewUser({
-        username: "",
-        email: "",
-        first_name: "",
-        last_name: "",
-        password: "",
-        is_active: true,
-        is_staff: false,
-        groups: [],
-      });
-      setNewProfile({
-        region: null,
-        depot: null,
-        is_national_level: false,
-        is_region_level: false,
-        is_depot_level: false,
-      });
-
-    } catch (err) {
-      setError('Failed to save user');
-      console.error('Error saving user:', err);
-    }
-  };
-
-  const handleEdit = (user: User) => {
-    setEditingUser(user);
-
-    // Pre-fill form with user data
-    setNewUser({
-      username: user.username,
-      email: user.email,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      password: "",
-      is_active: user.is_active,
-      is_staff: user.is_staff,
-      groups: user.groups || [],
-    });
-
-    // Pre-fill profile data if exists
-    const profile = userProfiles[user.id];
-    if (profile) {
-      setNewProfile({
-        region: profile.region,
-        depot: profile.depot,
-        is_national_level: profile.is_national_level,
-        is_region_level: profile.is_region_level,
-        is_depot_level: profile.is_depot_level,
-      });
-    } else {
-      setNewProfile({
-        region: null,
-        depot: null,
-        is_national_level: false,
-        is_region_level: false,
-        is_depot_level: false,
-      });
-    }
-
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      try {
-        await axios.delete(`${API_BASE_URL}/users/${id}/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        // Remove from state
-        setUsers(users.filter(user => user.id !== id));
-        const newProfiles = { ...userProfiles };
-        delete newProfiles[id];
-        setUserProfiles(newProfiles);
-      } catch (err) {
-        setError('Failed to delete user');
-        console.error('Error deleting user:', err);
-      }
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  // Form handlers
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
-
-    setNewUser(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    
+    if (type === 'checkbox') {
+      const target = e.target as HTMLInputElement;
+      setFormData(prev => ({
+        ...prev,
+        [name]: target.checked
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
-
-    // Special handling for access level checkboxes
-    if (name === 'is_national_level' || name === 'is_region_level' || name === 'is_depot_level') {
-      setNewProfile(prev => ({
+    
+    if (type === 'checkbox') {
+      const target = e.target as HTMLInputElement;
+      setProfileData(prev => ({
         ...prev,
-        [name]: checked,
-        // Reset other access levels if this one is checked
-        ...(checked ? {
-          is_national_level: name === 'is_national_level' ? true : false,
-          is_region_level: name === 'is_region_level' ? true : false,
-          is_depot_level: name === 'is_depot_level' ? true : false,
-        } : {}),
+        [name]: target.checked
       }));
     } else {
-      setNewProfile(prev => ({
+      setProfileData(prev => ({
         ...prev,
         [name]: value === '' ? null : Number(value)
       }));
     }
   };
 
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setFormData({
+      username: user.username,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      password: '',
+      is_active: user.is_active,
+      is_staff: user.is_staff,
+      groups: [...user.groups],
+    });
+
+    const userProfile = userProfiles[user.id];
+    if (userProfile) {
+      setProfileData({
+        region: userProfile.region,
+        depot: userProfile.depot,
+        is_national_level: userProfile.is_national_level,
+        is_region_level: userProfile.is_region_level,
+        is_depot_level: userProfile.is_depot_level,
+      });
+    }
+
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
+      let userResponse;
+      const userPayload = {
+        ...formData,
+        groups: formData.groups
+      };
+
+      if (editingUser) {
+        // Update existing user
+        userResponse = await axios.patch(
+          `${API_BASE_URL}/users/${editingUser.id}/`,
+          userPayload,
+          { headers }
+        );
+      } else {
+        // Create new user
+        userResponse = await axios.post(
+          `${API_BASE_URL}/users/`,
+          userPayload,
+          { headers }
+        );
+      }
+
+      // Handle user profile
+      const userId = userResponse.data.id;
+      const profilePayload = {
+        user: userId,
+        ...profileData,
+        region: profileData.region || null,
+        depot: profileData.depot || null,
+      };
+
+      const existingProfile = Object.values(userProfiles).find(
+        p => p.user === userId
+      );
+
+      if (existingProfile) {
+        await axios.patch(
+          `${API_BASE_URL}/user-profiles/${existingProfile.id}/`,
+          profilePayload,
+          { headers }
+        );
+      } else {
+        await axios.post(
+          `${API_BASE_URL}/user-profiles/`,
+          profilePayload,
+          { headers }
+        );
+      }
+
+      // Refresh data and reset form
+      await fetchData();
+      resetForm();
+      setShowForm(false);
+    } catch (err) {
+      const error = err as AxiosError;
+      setError(error.message || 'Failed to save user');
+      console.error('Error saving user:', error);
+    }
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+
+    try {
+      await axios.delete(`${API_BASE_URL}/users/${userId}/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      await fetchData();
+    } catch (err) {
+      const error = err as AxiosError;
+      setError(error.message || 'Failed to delete user');
+      console.error('Error deleting user:', error);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      username: '',
+      email: '',
+      first_name: '',
+      last_name: '',
+      password: '',
+      is_active: true,
+      is_staff: false,
+      groups: [],
+    });
+    setProfileData({
+      region: null,
+      depot: null,
+      is_national_level: false,
+      is_region_level: false,
+      is_depot_level: false,
+    });
+    setEditingUser(null);
+  };
+
   if (loading) {
-    return <div className="p-4">Loading users...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Loading users...</div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="p-4 text-red-500">{error}</div>;
+    return (
+      <div className="p-4 text-red-600 bg-red-100 rounded-md">
+        Error: {error}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Users</h2>
-        <button
-          onClick={() => {
-            setEditingUser(null);
-            setNewUser({
-              username: "",
-              email: "",
-              first_name: "",
-              last_name: "",
-              password: "",
-              is_active: true,
-              is_staff: false,
-              groups: [],
-            });
-            setNewProfile({
-              region: null,
-              depot: null,
-              is_national_level: false,
-              is_region_level: false,
-              is_depot_level: false,
-            });
-            setShowForm(true);
-          }}
-          className="bg-blue-600 text-white rounded px-4 py-2"
-        >
-          Add User
-        </button>
+      {/* Header and search */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Users</h1>
+          <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+            {filteredUsers.length} {filteredUsers.length === 1 ? 'User' : 'Users'}
+          </span>
+        </div>
+        
+        <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          />
+          
+          <button
+            onClick={() => {
+              resetForm();
+              setShowForm(true);
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Add User
+          </button>
+        </div>
       </div>
 
-      {/* Users Table */}
-      <div className="rounded-sm border border-stroke bg-white px-5 pb-2.5 pt-6 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:pb-1">
-        <div className="max-w-full overflow-x-auto">
-          <table className="w-full table-auto">
-            <thead>
-              <tr className="bg-gray-2 text-left dark:bg-meta-4">
-                <th className="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white xl:pl-11">
-                  User
+      {/* Users table */}
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Name
                 </th>
-                <th className="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Email
                 </th>
-                <th className="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">
-                  Access Level
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Role
                 </th>
-                <th className="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">
-                  Roles
-                </th>
-                <th className="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {users.map(user => {
+            <tbody className="bg-white divide-y divide-gray-200">
+              {paginatedUsers.map((user) => {
                 const profile = userProfiles[user.id];
-                let accessLevel = 'Limited';
-                if (profile?.is_national_level) accessLevel = 'National';
-                else if (profile?.is_region_level) accessLevel = 'Region';
-                else if (profile?.is_depot_level) accessLevel = 'Depot';
-
-                // Get role names for this user
-                const userRoleNames = user.groups?.map(groupId => {
-                  const group = groups.find(g => g.id === groupId);
-                  return group ? group.name : '';
-                }).filter(name => name) || [];
-
                 return (
-                  <tr key={user.id} className="border-b border-[#eee] dark:border-strokedark">
-                    <td className="py-5 px-4 dark:border-strokedark xl:pl-11">
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <p className="text-black dark:text-white">
-                          {user.first_name} {user.last_name}
-                        </p>
-                        <p className="text-sm text-gray-500">{user.username}</p>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.first_name} {user.last_name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            @{user.username}
+                          </div>
+                        </div>
                       </div>
                     </td>
-                    <td className="py-5 px-4 dark:border-strokedark">
-                      <p className="text-black dark:text-white">{user.email}</p>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.email}
                     </td>
-                    <td className="py-5 px-4 dark:border-strokedark">
-                      <p className="text-black dark:text-white">
-                        {accessLevel}
-                        {profile?.region_name && `: ${profile.region_name}`}
-                        {profile?.depot_name && `: ${profile.depot_name}`}
-                      </p>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        {user.is_superuser ? 'Admin' : user.is_staff ? 'Staff' : 'User'}
+                      </span>
                     </td>
-                    <td className="py-5 px-4 dark:border-strokedark">
-                      <p className={`inline-flex rounded-full bg-opacity-10 px-3 py-1 text-xs font-medium ${user.is_active ? 'bg-success text-success' : 'bg-danger text-danger'}`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          user.is_active
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
                         {user.is_active ? 'Active' : 'Inactive'}
-                      </p>
+                      </span>
                     </td>
-                    <td className="py-5 px-4 dark:border-strokedark">
-                      <div className="flex flex-wrap gap-1">
-                        {userRoleNames.map(role => (
-                          <span key={role} className="inline-flex rounded-full bg-purple-100 text-purple-800 text-xs px-2 py-1">
-                            {role}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-5 px-4 dark:border-strokedark">
-                      <div className="flex items-center space-x-3.5">
-                        <button
-                          onClick={() => handleEdit(user)}
-                          className="hover:text-primary"
-                        >
-                          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M14.625 5.25L12.75 3.375L3.875 12.25H1.75V15.5H5V13.375L13.875 4.5L14.625 5.25ZM12.0547 4.00488L13.9951 3.00464L14.9954 4.94507L13.0549 5.94531L12.0547 4.00488Z" fill="" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className="hover:text-danger"
-                        >
-                          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M14.625 5.25L12.75 3.375L3.875 12.25H1.75V15.5H5V13.375L13.875 4.5L14.625 5.25ZM12.0547 4.00488L13.9951 3.00464L14.9954 4.94507L13.0549 5.94531L12.0547 4.00488Z" fill="" />
-                          </svg>
-                        </button>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 );
@@ -468,253 +460,386 @@ export default function Users() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{(page - 1) * ITEMS_PER_PAGE + 1}</span> to{' '}
+                  <span className="font-medium">
+                    {Math.min(page * ITEMS_PER_PAGE, filteredUsers.length)}
+                  </span>{' '}
+                  of <span className="font-medium">{filteredUsers.length}</span> results
+                </p>
+              </div>
+              <div>
+                <nav
+                  className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                  aria-label="Pagination"
+                >
+                  <button
+                    onClick={() => setPage(1)}
+                    disabled={page === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                  >
+                    <span className="sr-only">First</span>
+                    &laquo;
+                  </button>
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Previous
+                  </button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (page <= 3) {
+                      pageNum = i + 1;
+                    } else if (page >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          page === pageNum
+                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Next
+                  </button>
+                  <button
+                    onClick={() => setPage(totalPages)}
+                    disabled={page === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                  >
+                    <span className="sr-only">Last</span>
+                    &raquo;
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Add/Edit User Form Modal */}
+      {/* Add/Edit User Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">
-                  {editingUser ? 'Edit User' : 'Add New User'}
-                </h3>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                  </svg>
-                </button>
-              </div>
+        <div className="fixed inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowForm(false)}></div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Username *
-                    </label>
-                    <input
-                      type="text"
-                      name="username"
-                      value={newUser.username}
-                      onChange={handleInputChange}
-                      className="w-full rounded border border-stroke bg-gray px-4.5 py-2 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white"
-                      required
-                    />
-                  </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={newUser.email}
-                      onChange={handleInputChange}
-                      className="w-full rounded border border-stroke bg-gray px-4.5 py-2 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white"
-                      required
-                    />
-                  </div>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+              <form onSubmit={handleSubmit}>
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                      <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        {editingUser ? 'Edit User' : 'Create New User'}
+                      </h3>
+                      <div className="mt-5 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                        {/* Username */}
+                        <div className="sm:col-span-3">
+                          <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                            Username *
+                          </label>
+                          <div className="mt-1">
+                            <input
+                              type="text"
+                              name="username"
+                              id="username"
+                              required
+                              value={formData.username}
+                              onChange={handleFormChange}
+                              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                            />
+                          </div>
+                        </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      name="first_name"
-                      value={newUser.first_name}
-                      onChange={handleInputChange}
-                      className="w-full rounded border border-stroke bg-gray px-4.5 py-2 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white"
-                    />
-                  </div>
+                        {/* Email */}
+                        <div className="sm:col-span-3">
+                          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                            Email *
+                          </label>
+                          <div className="mt-1">
+                            <input
+                              type="email"
+                              name="email"
+                              id="email"
+                              required
+                              value={formData.email}
+                              onChange={handleFormChange}
+                              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                            />
+                          </div>
+                        </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      name="last_name"
-                      value={newUser.last_name}
-                      onChange={handleInputChange}
-                      className="w-full rounded border border-stroke bg-gray px-4.5 py-2 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white"
-                    />
-                  </div>
+                        {/* First Name */}
+                        <div className="sm:col-span-3">
+                          <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
+                            First Name
+                          </label>
+                          <div className="mt-1">
+                            <input
+                              type="text"
+                              name="first_name"
+                              id="first_name"
+                              value={formData.first_name}
+                              onChange={handleFormChange}
+                              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                            />
+                          </div>
+                        </div>
 
-                  {!editingUser && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Password *
-                      </label>
-                      <input
-                        type="password"
-                        name="password"
-                        value={newUser.password}
-                        onChange={handleInputChange}
-                        className="w-full rounded border border-stroke bg-gray px-4.5 py-2 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white"
-                        required={!editingUser}
-                      />
-                    </div>
-                  )}
+                        {/* Last Name */}
+                        <div className="sm:col-span-3">
+                          <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
+                            Last Name
+                          </label>
+                          <div className="mt-1">
+                            <input
+                              type="text"
+                              name="last_name"
+                              id="last_name"
+                              value={formData.last_name}
+                              onChange={handleFormChange}
+                              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                            />
+                          </div>
+                        </div>
 
-                  <div className="md:col-span-2">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="is_active"
-                        checked={newUser.is_active}
-                        onChange={handleInputChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label className="ml-2 block text-sm text-gray-700">
-                        Active User
-                      </label>
-                    </div>
+                        {/* Password - only show for new users */}
+                        {!editingUser && (
+                          <div className="sm:col-span-6">
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                              Password {!editingUser && '*'}
+                            </label>
+                            <div className="mt-1">
+                              <input
+                                type="password"
+                                name="password"
+                                id="password"
+                                required={!editingUser}
+                                value={formData.password}
+                                onChange={handleFormChange}
+                                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                              />
+                            </div>
+                          </div>
+                        )}
 
-                    <div className="flex items-center mt-2">
-                      <input
-                        type="checkbox"
-                        name="is_staff"
-                        checked={newUser.is_staff}
-                        onChange={handleInputChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label className="ml-2 block text-sm text-gray-700">
-                        Staff User (Can Access Admin)
-                      </label>
-                    </div>
-                  </div>
+                        {/* Status */}
+                        <div className="sm:col-span-3">
+                          <label className="block text-sm font-medium text-gray-700">Status</label>
+                          <div className="mt-2 space-y-2">
+                            <div className="flex items-center">
+                              <input
+                                id="is_active"
+                                name="is_active"
+                                type="checkbox"
+                                checked={formData.is_active}
+                                onChange={handleFormChange}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700">
+                                Active
+                              </label>
+                            </div>
+                            <div className="flex items-center">
+                              <input
+                                id="is_staff"
+                                name="is_staff"
+                                type="checkbox"
+                                checked={formData.is_staff}
+                                onChange={handleFormChange}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <label htmlFor="is_staff" className="ml-2 block text-sm text-gray-700">
+                                Staff status
+                              </label>
+                            </div>
+                          </div>
+                        </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Roles/Groups
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-32 overflow-auto p-2 border border-gray-300 rounded-md">
-                      {groups.map(group => (
-                        <label key={group.id} className="flex items-center p-1">
-                          <input
-                            type="checkbox"
-                            checked={newUser.groups.includes(group.id)}
-                            onChange={() => {
-                              const newGroups = newUser.groups.includes(group.id)
-                                ? newUser.groups.filter(id => id !== group.id)
-                                : [...newUser.groups, group.id];
-                              setNewUser(prev => ({ ...prev, groups: newGroups }));
-                            }}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">{group.name}</span>
-                        </label>
-                      ))}
+                        {/* Groups/Roles */}
+                        <div className="sm:col-span-3">
+                          <label className="block text-sm font-medium text-gray-700">Roles</label>
+                          <div className="mt-2 space-y-2 max-h-40 overflow-y-auto p-2 border rounded">
+                            {groups.map((group) => (
+                              <div key={group.id} className="flex items-center">
+                                <input
+                                  id={`group-${group.id}`}
+                                  name="groups"
+                                  type="checkbox"
+                                  checked={formData.groups.includes(group.id)}
+                                  onChange={(e) => {
+                                    const { checked } = e.target;
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      groups: checked
+                                        ? [...prev.groups, group.id]
+                                        : prev.groups.filter(id => id !== group.id)
+                                    }));
+                                  }}
+                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                />
+                                <label htmlFor={`group-${group.id}`} className="ml-2 block text-sm text-gray-700">
+                                  {group.name}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* User Profile Section */}
+                        <div className="sm:col-span-6 border-t border-gray-200 pt-4">
+                          <h4 className="text-sm font-medium text-gray-700 mb-4">User Profile</h4>
+                          
+                          {/* Access Level */}
+                          <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3 mb-4">
+                            <div className="flex items-center">
+                              <input
+                                id="is_national_level"
+                                name="is_national_level"
+                                type="checkbox"
+                                checked={profileData.is_national_level}
+                                onChange={handleProfileChange}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <label htmlFor="is_national_level" className="ml-2 block text-sm text-gray-700">
+                                National Level
+                              </label>
+                            </div>
+                            <div className="flex items-center">
+                              <input
+                                id="is_region_level"
+                                name="is_region_level"
+                                type="checkbox"
+                                checked={profileData.is_region_level}
+                                onChange={handleProfileChange}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <label htmlFor="is_region_level" className="ml-2 block text-sm text-gray-700">
+                                Region Level
+                              </label>
+                            </div>
+                            <div className="flex items-center">
+                              <input
+                                id="is_depot_level"
+                                name="is_depot_level"
+                                type="checkbox"
+                                checked={profileData.is_depot_level}
+                                onChange={handleProfileChange}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <label htmlFor="is_depot_level" className="ml-2 block text-sm text-gray-700">
+                                Depot Level
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* Region and Depot Selection */}
+                          <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                            {/* Region */}
+                            <div>
+                              <label htmlFor="region" className="block text-sm font-medium text-gray-700">
+                                Region
+                              </label>
+                              <select
+                                id="region"
+                                name="region"
+                                value={profileData.region || ''}
+                                onChange={handleProfileChange}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                              >
+                                <option value="">Select a region</option>
+                                {regions.map((region) => (
+                                  <option key={region.id} value={region.id}>
+                                    {region.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Depot - filtered by selected region */}
+                            <div>
+                              <label htmlFor="depot" className="block text-sm font-medium text-gray-700">
+                                Depot
+                              </label>
+                              <select
+                                id="depot"
+                                name="depot"
+                                value={profileData.depot || ''}
+                                onChange={handleProfileChange}
+                                disabled={!profileData.region}
+                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md disabled:bg-gray-50"
+                              >
+                                <option value="">Select a depot</option>
+                                {depots
+                                  .filter((depot) => depot.region === profileData.region)
+                                  .map((depot) => (
+                                    <option key={depot.id} value={depot.id}>
+                                      {depot.name}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                <div className="mt-6">
-                  <h3 className="text-lg font-medium text-gray-800 mb-3">Access Level</h3>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="is_national_level"
-                        checked={newProfile.is_national_level}
-                        onChange={handleProfileChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label className="ml-2 block text-sm text-gray-700">
-                        National Level (Full Access)
-                      </label>
-                    </div>
-
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="is_region_level"
-                        checked={newProfile.is_region_level}
-                        onChange={handleProfileChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label className="ml-2 block text-sm text-gray-700">
-                        Region Level
-                      </label>
-                    </div>
-
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="is_depot_level"
-                        checked={newProfile.is_depot_level}
-                        onChange={handleProfileChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label className="ml-2 block text-sm text-gray-700">
-                        Depot Level
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Conditional region/dept selection */}
-                  {newProfile.is_region_level && (
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Region
-                      </label>
-                      <select
-                        name="region"
-                        value={newProfile.region || ''}
-                        onChange={handleProfileChange}
-                        className="w-full rounded border border-stroke bg-gray px-4.5 py-2 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white"
-                      >
-                        <option value="">Select Region</option>
-                        {regions.map(region => (
-                          <option key={region.id} value={region.id}>
-                            {region.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {newProfile.is_depot_level && (
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Depot
-                      </label>
-                      <select
-                        name="depot"
-                        value={newProfile.depot || ''}
-                        onChange={handleProfileChange}
-                        className="w-full rounded border border-stroke bg-gray px-4.5 py-2 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white"
-                      >
-                        <option value="">Select Depot</option>
-                        {depots.map(depot => (
-                          <option key={depot.id} value={depot.id}>
-                            {depot.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-6 flex justify-end space-x-3">
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    {editingUser ? 'Update' : 'Create'}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                   >
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-                  >
-                    {editingUser ? 'Update User' : 'Create User'}
                   </button>
                 </div>
               </form>
@@ -724,4 +849,4 @@ export default function Users() {
       )}
     </div>
   );
-};"export default Users;" 
+}

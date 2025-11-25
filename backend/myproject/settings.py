@@ -205,6 +205,7 @@ MQTT_TOPICS = [
 MQTT_CLIENT_ID = os.getenv('MQTT_CLIENT_ID', 'powertel-django-listener')
 MQTT_QOS = int(os.getenv('MQTT_QOS', '0'))
 MQTT_SAVE_ALL_READINGS = (os.getenv('MQTT_SAVE_ALL_READINGS', 'true').lower() == 'true')
+MQTT_MIRROR_FROM_LORIOT = (os.getenv('MQTT_MIRROR_FROM_LORIOT', 'true').lower() == 'true')
 
 REDIS_HOST = os.getenv('REDIS_HOST')
 REDIS_URL = os.getenv('REDIS_URL')

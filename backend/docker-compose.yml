@@ -54,7 +54,7 @@ services:
     build:
       context: .
     working_dir: /app
-    command: sh -c "while true; do python manage.py generate_sensor_readings --count 5; sleep 10; done"
+    command: sh -c "while true; do python manage.py generate_sensor_readings --count 5 --mqtt; sleep 10; done"
     environment:
       - REDIS_HOST=redis
       - TZ=Africa/Harare

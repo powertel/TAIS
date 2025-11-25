@@ -13,6 +13,10 @@ try:
     import websocket
 except ImportError:
     websocket = None
+try:
+    import paho.mqtt.client as mqtt
+except Exception:
+    mqtt = None
 
 
 class Command(BaseCommand):
@@ -209,6 +213,19 @@ class Command(BaseCommand):
                     received_at=timezone.now()
                 )
                 try:
+                    c = getattr(self, '_mqtt_client', None)
+                    if c:
+                        payload = {
+                            'value': value,
+                            'timestamp': timezone.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                            'deveui': deveui,
+                            'port': port,
+                            'decoded': decoded,
+                        }
+                        c.publish(f"powerteltais/{deveui}/{port}", json.dumps(payload), qos=int(getattr(settings, 'MQTT_QOS', 0)), retain=False)
+                except Exception:
+                    pass
+                try:
                     from api.realtime_views import push_device_update, push_sensor_update
                     push_device_update(device.id, port=port, value=value, codec=(decoded.get('codec') if decoded else None))
                     push_sensor_update(sensor.id, value, False)
@@ -269,6 +286,29 @@ class Command(BaseCommand):
                 self.stderr.write(f'Closed: code={code} reason={reason}')
             except Exception:
                 pass
+
+        # Prepare optional MQTT mirroring client
+        self._mqtt_client = None
+        try:
+            if getattr(settings, 'MQTT_MIRROR_FROM_LORIOT', False) and mqtt is not None:
+                host = getattr(settings, 'MQTT_BROKER_HOST', None) or os.getenv('MQTT_BROKER_HOST') or ''
+                port = int(getattr(settings, 'MQTT_BROKER_PORT', None) or os.getenv('MQTT_BROKER_PORT') or '0')
+                user = getattr(settings, 'MQTT_USERNAME', None) or os.getenv('MQTT_USERNAME') or ''
+                password = getattr(settings, 'MQTT_PASSWORD', None) or os.getenv('MQTT_PASSWORD') or ''
+                client_id = f"tais-loriot-mirror-{os.getpid()}"
+                c = mqtt.Client(client_id=client_id)
+                if user:
+                    c.username_pw_set(user, password)
+                if port == 8883:
+                    try:
+                        c.tls_set(cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLS)
+                    except Exception:
+                        c.tls_set()
+                if host and port:
+                    c.connect(host, port, keepalive=60)
+                    self._mqtt_client = c
+        except Exception:
+            self._mqtt_client = None
 
         ws = websocket.WebSocketApp(url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
         sslopt = {}

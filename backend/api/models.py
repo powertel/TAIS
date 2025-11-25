@@ -55,10 +55,14 @@ class Transformer(models.Model):
 class Sensor(models.Model):
     SENSOR_TYPES = [
         ('temperature', 'Temperature'),
-        ('oil_level', 'Oil Level'),
-        ('pressure', 'Pressure'),
         ('current', 'Current'),
         ('voltage', 'Voltage'),
+        ('humidity', 'Humidity'),
+        ('contact', 'Contact'),
+        ('motion', 'Motion'),
+        ('tilt', 'Tilt'),
+        ('video', 'Video'),
+        ('oil_level', 'Oil Level'),
         ('other', 'Other'),
     ]
 
@@ -68,12 +72,16 @@ class Sensor(models.Model):
     sensor_type = models.CharField(max_length=20, choices=SENSOR_TYPES)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
+    dev_eui = models.CharField(max_length=32, blank=True)
+    fport = models.PositiveSmallIntegerField(null=True, blank=True)
+    meta = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name_plural = "Sensors"
         ordering = ['name']
+        unique_together = [['dev_eui', 'fport']]
 
     def __str__(self):
         return f"{self.name} ({self.sensor_id}) - {self.transformer.name}"
@@ -113,17 +121,72 @@ class UserProfile(models.Model):
 
 
 class SensorReading(models.Model):
-    """
-    Model to store real-time sensor readings for monitoring transformers
-    """
-    sensor = models.ForeignKey(Sensor, on_delete=models.CASCADE, related_name='readings')
-    value = models.DecimalField(max_digits=10, decimal_places=2)
+    sensor = models.ForeignKey(Sensor, on_delete=models.CASCADE, related_name='readings', null=True, blank=True)
+    value = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
-    is_alert = models.BooleanField(default=False, help_text="Indicates if this reading triggered an alert")
+    is_alert = models.BooleanField(default=False)
+    topic = models.CharField(max_length=255, blank=True, null=True)
+    raw_payload = models.JSONField(default=dict)
+    decoded = models.JSONField(null=True, blank=True)
+    received_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name_plural = "Sensor Readings"
         ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['sensor', 'received_at']),
+            models.Index(fields=['received_at']),
+        ]
 
     def __str__(self):
         return f"{self.sensor.name} - {self.value} at {self.timestamp}"
+
+
+class Device(models.Model):
+    name = models.CharField(max_length=100)
+    deveui = models.CharField(max_length=32, unique=True)
+    client_id = models.CharField(max_length=100, blank=True)
+    codec = models.CharField(max_length=50, blank=True, default='')
+    transformer = models.ForeignKey(Transformer, on_delete=models.CASCADE, related_name='devices', null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} ({self.deveui})"
+
+
+class DeviceSensorMap(models.Model):
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='sensor_maps')
+    port = models.IntegerField()
+    sensor = models.ForeignKey(Sensor, on_delete=models.CASCADE, related_name='device_maps')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [['device', 'port']]
+        ordering = ['device__deveui', 'port']
+
+    def __str__(self):
+        return f"{self.device.deveui}:{self.port} -> {self.sensor.sensor_id}"
+
+
+class DeviceUplink(models.Model):
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='uplinks')
+    port = models.IntegerField()
+    topic = models.CharField(max_length=200)
+    raw = models.JSONField(default=dict)
+    value = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True)
+    ts_device = models.DateTimeField(null=True, blank=True)
+    received_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-received_at']
+
+    def __str__(self):
+        return f"{self.device.deveui}:{self.port} @ {self.received_at}"

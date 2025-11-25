@@ -31,6 +31,7 @@ import TransformerDetail from "./pages/Dashboard/TransformerDetail";
 import RegionsPage from "./pages/Dashboard/RegionsPage";
 import DepotsTablePage from "./pages/Dashboard/DepotsTablePage";
 import TransformersPage from "./pages/Dashboard/TransformersPage";
+import SensorsPage from "./pages/Dashboard/SensorsPage";
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
@@ -63,6 +64,7 @@ const AppRoutes = () => {
         <Route path="regions" element={<RegionsPage />} />
         <Route path="depots" element={<DepotsTablePage />} />
         <Route path="transformers" element={<TransformersPage />} />
+        <Route path="sensors" element={<SensorsPage />} />
         <Route path="transformer/:id" element={<TransformerDetail />} />
         <Route
           path="items"

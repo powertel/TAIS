@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -59,7 +61,9 @@ ROOT_URLCONF = 'myproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / 'api' / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -72,6 +76,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'myproject.wsgi.application'
+ASGI_APPLICATION = 'myproject.asgi.application'
 
 
 # Database
@@ -109,7 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Harare'
 
 USE_I18N = True
 
@@ -119,7 +124,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -185,3 +190,36 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = False  # We specify allowed origins above
+
+# MQTT broker configuration (HiveMQ)
+# Replace these with your broker details via environment variables or secrets manager
+MQTT_BROKER_HOST = os.getenv('MQTT_BROKER_HOST') or '6e7e685648f54bfbab514e20990a8c06.s1.eu.hivemq.cloud'
+MQTT_BROKER_PORT = int(os.getenv('MQTT_BROKER_PORT') or '8883')
+MQTT_USERNAME = os.getenv('MQTT_USERNAME') or 'powertel'
+MQTT_PASSWORD = os.getenv('MQTT_PASSWORD') or '42;FckMxc'
+# Subscribe to all device topics under powerteltais/{DEVEUI}/{PORT}
+MQTT_TOPICS = [
+    (os.getenv('MQTT_TOPIC') or 'powerteltais/+/+')
+]
+# Optional client settings to align with LORIOT output recommendations
+MQTT_CLIENT_ID = os.getenv('MQTT_CLIENT_ID', 'powertel-django-listener')
+MQTT_QOS = int(os.getenv('MQTT_QOS', '0'))
+MQTT_SAVE_ALL_READINGS = (os.getenv('MQTT_SAVE_ALL_READINGS', 'true').lower() == 'true')
+
+REDIS_HOST = os.getenv('REDIS_HOST')
+REDIS_URL = os.getenv('REDIS_URL')
+if REDIS_URL or REDIS_HOST:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL or f'redis://{REDIS_HOST}:6379/0'],
+            },
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        }
+    }

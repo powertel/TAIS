@@ -7,7 +7,19 @@ import { useAuth } from "../../context/AuthContext";
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const name = user ? `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username : "User";
+  const shortName = user?.first_name || user?.username || "User";
+  const email = user?.email || "";
+  const initials = (() => {
+    const f = user?.first_name?.trim();
+    const l = user?.last_name?.trim();
+    const fromNames = `${(f?.[0] || "")}${(l?.[0] || "")}`.toUpperCase();
+    if (fromNames) return fromNames;
+    const u = user?.username?.trim();
+    return (u ? u.slice(0, 2).toUpperCase() : "U");
+  })();
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -27,11 +39,10 @@ export default function UserDropdown() {
         onClick={toggleDropdown}
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
-        <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <img src="/images/user/owner.jpg" alt="User" />
+        <span className="mr-3 flex items-center justify-center rounded-full h-8 w-8 bg-blue-500 text-white font-semibold">
+          {initials}
         </span>
-
-        <span className="block mr-1 font-medium text-theme-sm">Musharof</span>
+        {/* <span className="block mr-1 font-medium text-theme-sm">{shortName}</span> */}
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
@@ -59,10 +70,10 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            Musharof Chowdhury
+            {name}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            randomuser@pimjo.com
+            {email}
           </span>
         </div>
 

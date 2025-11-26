@@ -375,6 +375,32 @@ layer(base);
   @apply hidden;
 }
 
+/* Custom scrollbar utilities */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-white {
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff transparent;
+}
+.scrollbar-white::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-white::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+.scrollbar-white::-webkit-scrollbar-thumb {
+  background-color: #ffffff;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+}
+
 .stocks-slider-outer .swiper-button-next,
 .stocks-slider-outer .swiper-button-prev {
   @apply static! mt-0 h-8 w-9 rounded-full border dark:hover:bg-white/[0.05] border-gray-200 !text-gray-700 transition hover:bg-gray-100 dark:border-white/[0.03] dark:bg-gray-800 dark:!text-gray-400  dark:hover:!text-white/90;

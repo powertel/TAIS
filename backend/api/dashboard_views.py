@@ -208,10 +208,11 @@ class DashboardViewSet(viewsets.ViewSet):
             for sensor in transformer.sensors.all()[:5]:  # Get first 5 sensors for performance
                 latest_reading = sensor.readings.order_by('-timestamp').first()
                 if latest_reading:
+                    latest_value = latest_reading.value
                     latest_readings.append({
                         'sensor_name': sensor.name,
                         'sensor_type': sensor.sensor_type,
-                        'value': float(latest_reading.value),
+                        'value': (float(latest_value) if latest_value is not None else None),
                         'timestamp': latest_reading.timestamp,
                         'is_alert': latest_reading.is_alert
                     })
@@ -282,8 +283,9 @@ class DashboardViewSet(viewsets.ViewSet):
             # Get the latest reading
             latest_reading = sensor.readings.order_by('-timestamp').first()
             if latest_reading:
+                latest_value = latest_reading.value
                 sensor_data['latest_reading'] = {
-                    'value': float(latest_reading.value),
+                    'value': (float(latest_value) if latest_value is not None else None),
                     'timestamp': latest_reading.timestamp,
                     'is_alert': latest_reading.is_alert
                 }
@@ -297,10 +299,11 @@ class DashboardViewSet(viewsets.ViewSet):
 
         readings_data = []
         for reading in recent_readings:
+            rv = reading.value
             readings_data.append({
                 'sensor_name': reading.sensor.name,
                 'sensor_type': reading.sensor.sensor_type,
-                'value': float(reading.value),
+                'value': (float(rv) if rv is not None else None),
                 'timestamp': reading.timestamp,
                 'is_alert': reading.is_alert
             })

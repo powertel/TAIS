@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useUserAccess } from '../../hooks/useUserAccess';
 import axios from 'axios';
 import HierarchyVisualization from './HierarchyVisualization';
+import { useRealtimeUpdates } from '../../services/realtimeService';
 
 interface DashboardStats {
   total_regions: number;
@@ -50,6 +51,21 @@ interface TransformerStatus {
   sensor_count: number;
 }
 
+// Add interface for real-time sensor updates
+interface SensorUpdate {
+  type: string;
+  sensor_id: number;
+  sensor_name: string;
+  sensor_type: string;
+  transformer_id: number;
+  transformer_name: string;
+  depot_name: string;
+  region_name: string;
+  value: number | string;
+  is_alert: boolean;
+  timestamp: number;
+}
+
 export default function DashboardHome() {
   const { token, user } = useAuth();
   const { hasNationalAccess, hasRegionAccess, hasDepotAccess, loading: accessLoading } = useUserAccess();
@@ -58,6 +74,10 @@ export default function DashboardHome() {
   const [selectedTransformer, setSelectedTransformer] = useState<TransformerDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Add state for real-time data
+  const { realtimeData, isConnected, connectionError } = useRealtimeUpdates(token);
+  const [transformerSensors, setTransformerSensors] = useState<Record<number, SensorUpdate[]>>({});
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -76,6 +96,7 @@ export default function DashboardHome() {
   const [openRegions, setOpenRegions] = useState<Record<string, boolean>>({});
   const [openDepots, setOpenDepots] = useState<Record<string, boolean>>({});
 
+  // Fetch dashboard data
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -110,6 +131,58 @@ export default function DashboardHome() {
       fetchDashboardData();
     }
   }, [token]);
+
+  // Process real-time updates
+  useEffect(() => {
+    if (realtimeData.length > 0) {
+      // Group sensor updates by transformer
+      const groupedByTransformer: Record<number, SensorUpdate[]> = {};
+
+      realtimeData.forEach(update => {
+        if (!groupedByTransformer[update.transformer_id]) {
+          groupedByTransformer[update.transformer_id] = [];
+        }
+        // Replace or add the sensor update
+        const existingIndex = groupedByTransformer[update.transformer_id].findIndex(
+          item => item.sensor_id === update.sensor_id
+        );
+
+        if (existingIndex !== -1) {
+          groupedByTransformer[update.transformer_id][existingIndex] = update;
+        } else {
+          groupedByTransformer[update.transformer_id].push(update);
+        }
+      });
+
+      setTransformerSensors(groupedByTransformer);
+
+      // Update selected transformer if it matches the updated transformer
+      if (selectedTransformer && groupedByTransformer[selectedTransformer.id]) {
+        const updatedSensors = selectedTransformer.sensors.map(sensor => {
+          const realTimeUpdate = groupedByTransformer[selectedTransformer.id].find(
+            update => update.sensor_id === sensor.id
+          );
+
+          if (realTimeUpdate) {
+            return {
+              ...sensor,
+              latest_reading: {
+                value: Number(realTimeUpdate.value),
+                timestamp: new Date(realTimeUpdate.timestamp).toISOString(),
+                is_alert: realTimeUpdate.is_alert
+              }
+            };
+          }
+          return sensor;
+        });
+
+        setSelectedTransformer({
+          ...selectedTransformer,
+          sensors: updatedSensors
+        });
+      }
+    }
+  }, [realtimeData]);
 
   const handleTransformerSelect = async (transformerId: number, regionName?: string, depotName?: string) => {
     console.log('Transformer clicked:', transformerId); // Debug log
@@ -261,6 +334,23 @@ export default function DashboardHome() {
         </div>
       </div>
 
+      {/* Real-time Connection Status Banner */}
+      <div className="rounded-2xl bg-white/80 p-4 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className={`h-3 w-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {isConnected ? 'Connected to real-time sensor feed' : 'Disconnected from real-time sensor feed'}
+            </span>
+          </div>
+          {connectionError && (
+            <div className="text-sm text-red-600 dark:text-red-400">
+              Error: {connectionError}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Main Dashboard Content - Hierarchy Visualization with Interactive Transformer Details */}
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Left Side: Hierarchy Tree - conditionally render based on access level */}
@@ -269,7 +359,7 @@ export default function DashboardHome() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Monitored Transformers</h3>
               <div className="flex items-center space-x-2">
-                <div className="h-2 w-2 rounded-full bg-brand-400 animate-pulse"></div>
+                <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'} `}></div>
                 <span className="text-sm text-brand-600 dark:text-brand-400">Live</span>
               </div>
             </div>
@@ -306,18 +396,29 @@ export default function DashboardHome() {
                           </div>
                         </summary>
                         <ul className="mt-2 space-y-2">
-                          {list.map((t) => (
-                            <li key={t.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white shadow-sm hover:shadow-md border border-gray-200/60 dark:border-gray-700/60 dark:bg-gray-800 transition">
-                              <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id, region, depot)}>
-                                <div className="flex items-center gap-2">
-                                  <Zap className={`w-4 h-4 ${t.is_active ? 'text-success' : 'text-danger'}`} />
-                                  <span className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</span>
-                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.is_active ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20' : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
-                                </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">ID: {t.transformer_id} • {t.capacity} MVA • {t.sensor_count} sensors</div>
-                              </button>
-                            </li>
-                          ))}
+                          {list.map((t) => {
+                            // Get real-time sensor data for this transformer
+                            const realTimeSensors = transformerSensors[t.id] || [];
+                            const alertCount = realTimeSensors.filter(sensor => sensor.is_alert).length;
+
+                            return (
+                              <li key={t.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white shadow-sm hover:shadow-md border border-gray-200/60 dark:border-gray-700/60 dark:bg-gray-800 transition">
+                                <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id, region, depot)}>
+                                  <div className="flex items-center gap-2">
+                                    <Zap className={`w-4 h-4 ${t.is_active ? 'text-success' : 'text-danger'}`} />
+                                    <span className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</span>
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.is_active ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20' : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
+                                    {alertCount > 0 && (
+                                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-danger bg-opacity-10 text-danger dark:bg-opacity-20">
+                                        {alertCount} Alert{alertCount > 1 ? 's' : ''}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">ID: {t.transformer_id} • {t.capacity} MVA • {t.sensor_count} sensors</div>
+                                </button>
+                              </li>
+                            );
+                          })}
                         </ul>
                       </details>
                     ))}
@@ -436,58 +537,85 @@ export default function DashboardHome() {
                     <div className="p-4 bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Sensor Dashboard</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {selectedTransformer.sensors.map((sensor, index) => (
-                          <div key={index} className="p-3 bg-gradient-to-br from-gray-50 to-white rounded-lg shadow-sm backdrop-blur-sm dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200/50 dark:border-gray-700/50">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="capitalize font-medium text-gray-800 dark:text-gray-200 text-sm">{sensor.name.replace('_', ' ')}</span>
-                              <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold ${
-                                sensor.is_active 
-                                  ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20' 
-                                  : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'
-                              }`}>
-                                {sensor.is_active ? 'Active' : 'Inactive'}
-                              </span>
-                            </div>
+                        {selectedTransformer.sensors.map((sensor, index) => {
+                          // Get real-time data for this sensor
+                          const realTimeSensor = transformerSensors[selectedTransformer.id]?.find(
+                            s => s.sensor_id === sensor.id
+                          );
 
-                            {sensor.latest_reading ? (
-                              <div>
-                                <div className="flex items-end justify-between mb-1">
-                                  <span className={`text-xl font-bold ${
-                                    sensor.latest_reading.is_alert 
-                                      ? 'text-red-600 dark:text-red-400' 
-                                      : 'text-green-600 dark:text-green-400'
-                                  }`}>
-                                    {sensor.latest_reading.value}
-                                  </span>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    {sensor.sensor_type === 'temperature' && '°C'}
-                                    {sensor.sensor_type === 'oil_level' && '%'}
-                                    {sensor.sensor_type === 'pressure' && 'PSI'}
-                                    {sensor.sensor_type === 'current' && 'A'}
-                                    {sensor.sensor_type === 'voltage' && 'V'}
-                                  </span>
-                                </div>
+                          // Use real-time data if available, otherwise fall back to stored data
+                          const displayReading = realTimeSensor ? {
+                            value: Number(realTimeSensor.value),
+                            timestamp: new Date(realTimeSensor.timestamp).toISOString(),
+                            is_alert: realTimeSensor.is_alert
+                          } : sensor.latest_reading;
 
-                                <div className="mt-2 bg-gray-200/50 rounded-full h-1.5 dark:bg-gray-700/50">
-                                  <div className={`h-full rounded-full ${
-                                    sensor.latest_reading.is_alert ? 'bg-red-500' : 'bg-green-500'
-                                  }`} style={{width: `${Math.min(sensor.latest_reading.value / (sensor.sensor_type === 'temperature' ? 100 : sensor.sensor_type === 'voltage' ? 500 : 100) * 100, 100)}%`}}></div>
-                                </div>
-
-                                <div className="mt-1.5 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-                                  <span>{new Date(sensor.latest_reading.timestamp).toLocaleTimeString()}</span>
-                                  {sensor.latest_reading.is_alert && (
-                                    <span className="text-red-500 font-medium text-xs">⚠️ Alert</span>
+                          return (
+                            <div key={index} className="p-3 bg-gradient-to-br from-gray-50 to-white rounded-lg shadow-sm backdrop-blur-sm dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200/50 dark:border-gray-700/50">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="capitalize font-medium text-gray-800 dark:text-gray-200 text-sm">{sensor.name.replace('_', ' ')}</span>
+                                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold ${
+                                  sensor.is_active
+                                    ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20'
+                                    : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'
+                                }`}>
+                                  {sensor.is_active ? 'Active' : 'Inactive'}
+                                  {realTimeSensor && (
+                                    <span className="ml-1 h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
                                   )}
+                                </span>
+                              </div>
+
+                              {displayReading ? (
+                                <div>
+                                  <div className="flex items-end justify-between mb-1">
+                                    <span className={`text-xl font-bold ${
+                                      displayReading.is_alert
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'text-green-600 dark:text-green-400'
+                                    }`}>
+                                      {displayReading.value}
+                                    </span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      {sensor.sensor_type === 'temperature' && '°C'}
+                                      {sensor.sensor_type === 'oil_level' && '%'}
+                                      {sensor.sensor_type === 'pressure' && 'PSI'}
+                                      {sensor.sensor_type === 'current' && 'A'}
+                                      {sensor.sensor_type === 'voltage' && 'V'}
+                                      {sensor.sensor_type === 'humidity' && '%'}
+                                      {sensor.sensor_type === 'contact' && (displayReading.value ? 'CLOSED' : 'OPEN')}
+                                      {sensor.sensor_type === 'motion' && (displayReading.value ? 'DETECTED' : 'CLEAR')}
+                                      {sensor.sensor_type === 'video' && 'ACTIVE'}
+                                    </span>
+                                  </div>
+
+                                  <div className="mt-2 bg-gray-200/50 rounded-full h-1.5 dark:bg-gray-700/50">
+                                    <div className={`h-full rounded-full ${
+                                      displayReading.is_alert ? 'bg-red-500' : 'bg-green-500'
+                                    }`} style={{width: `${Math.min(displayReading.value / (sensor.sensor_type === 'temperature' ? 100 : sensor.sensor_type === 'voltage' ? 500 : sensor.sensor_type === 'oil_level' ? 100 : 100) * 100, 100)}%`}}></div>
+                                  </div>
+
+                                  <div className="mt-1.5 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                                    <span>
+                                      {realTimeSensor
+                                        ? `Live: ${new Date(realTimeSensor.timestamp).toLocaleTimeString()}`
+                                        : displayReading?.timestamp
+                                          ? new Date(displayReading.timestamp).toLocaleTimeString()
+                                          : 'No timestamp'}
+                                    </span>
+                                    {displayReading.is_alert && (
+                                      <span className="text-red-500 font-medium text-xs">⚠️ Alert</span>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <div className="text-center py-2">
-                                <span className="text-gray-400 dark:text-gray-500 text-xs">No data available</span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              ) : (
+                                <div className="text-center py-2">
+                                  <span className="text-gray-400 dark:text-gray-500 text-xs">No data available</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

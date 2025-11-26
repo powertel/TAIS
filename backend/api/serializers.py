@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User, Group, Permission
-from .models import Region, Depot, Transformer, Sensor, UserProfile, SensorReading
+from .models import Region, Depot, Transformer, Sensor, UserProfile, SensorReading, Device, DeviceSensorMap, DeviceUplink
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -75,6 +75,31 @@ class SensorReadingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SensorReading
+        fields = '__all__'
+
+
+class DeviceSerializer(serializers.ModelSerializer):
+    transformer_name = serializers.CharField(source='transformer.name', read_only=True)
+
+    class Meta:
+        model = Device
+        fields = '__all__'
+
+
+class DeviceSensorMapSerializer(serializers.ModelSerializer):
+    device_deveui = serializers.CharField(source='device.deveui', read_only=True)
+    sensor_id_display = serializers.CharField(source='sensor.sensor_id', read_only=True)
+
+    class Meta:
+        model = DeviceSensorMap
+        fields = '__all__'
+
+
+class DeviceUplinkSerializer(serializers.ModelSerializer):
+    device_deveui = serializers.CharField(source='device.deveui', read_only=True)
+
+    class Meta:
+        model = DeviceUplink
         fields = '__all__'
 
 

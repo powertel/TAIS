@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Telemetry</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 2rem; }
+    .top { display: flex; justify-content: space-between; align-items: center; }
+    .card { margin-top: 1rem; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #eee; padding: 0.5rem; text-align: left; }
+    input { padding: 0.4rem; border: 1px solid #ccc; border-radius: 6px; }
+    button { padding: 0.5rem 1rem; border: 0; border-radius: 6px; background: #0d6efd; color: #fff; }
+    code, pre { background: #f7f7f7; padding: 0.4rem; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div>
+      <h1>Telemetry</h1>
+      <div>User: {{ username }}</div>
+    </div>
+    <div><a href="/console/">Console</a> • <a href="/console/logout/">Logout</a></div>
+  </div>
+
+  <div class="card">
+    <form method="get" action="/console/telemetry/">
+      <label>Device EUI</label>
+      <input name="deveui" value="{{ deveui }}" placeholder="24E124791E517431" />
+      <label>Port</label>
+      <input name="port" value="{{ port }}" placeholder="85" />
+      <label>Minutes</label>
+      <input name="minutes" value="{{ minutes }}" placeholder="60" />
+      <button type="submit">Filter</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Inject Test Uplink</h2>
+    <form method="post" action="/console/telemetry/">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="inject" />
+      <input type="hidden" name="deveui" value="{{ deveui }}" />
+      <input type="hidden" name="port" value="{{ port }}" />
+      <label>Hex/Base64 Data</label>
+      <input name="hex" placeholder="0367070104686b050001" />
+      <button type="submit">Inject</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Latest Uplinks</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Device</th>
+          <th>Port</th>
+          <th>Value</th>
+          <th>Codec</th>
+          <th>Decoded</th>
+          <th>Topic</th>
+        </tr>
+      </thead>
+      <tbody id="uplink-body">
+        {% for ul in uplinks %}
+          <tr>
+            <td>{{ ul.received_at }}</td>
+            <td>{{ ul.device.deveui }}</td>
+            <td>{{ ul.port }}</td>
+            <td>{{ ul.value }}</td>
+            <td>{{ ul.device.metadata.codec }}</td>
+            <td>
+              {% if ul.raw.decoded_vendor %}
+                <pre>{{ ul.raw.decoded_vendor|safe }}</pre>
+              {% else %}
+                <span>-</span>
+              {% endif %}
+            </td>
+            <td><code>{{ ul.topic }}</code></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">No uplinks yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Live Devices</h2>
+    <div id="device-live"></div>
+  </div>
+
+  <div class="card">
+    <h2>Live Stream</h2>
+    <div id="live-log"></div>
+    <script>
+      (function(){
+        var expected = "{{ expected_sensor_name|default:'' }}";
+        try {
+          var es = new EventSource('/realtime/stream/?token={{ token }}');
+          es.onmessage = function(e){
+            try{
+              var data = JSON.parse(e.data);
+              if(data && data.type === 'sensor_update'){
+                var ok = true;
+                if(expected && expected.length){
+                  ok = (data.sensor_name === expected);
+                }
+                if(ok){
+                  var row = document.createElement('div');
+                  row.textContent = 'Update: ' + data.sensor_name + ' value=' + data.value + ' alert=' + data.is_alert;
+                  document.getElementById('live-log').prepend(row);
+                }
+              } else if (data && data.type === 'device_update') {
+                var m = document.createElement('div');
+                m.textContent = 'Device ' + data.deveui + ' port=' + data.port + ' value=' + data.value + ' codec=' + (data.codec||'');
+                document.getElementById('device-live').prepend(m);
+                try {
+                  var row = document.getElementById('dev-' + data.deveui);
+                  if (!row) {
+                    row = document.createElement('tr');
+                    row.id = 'dev-' + data.deveui;
+                    var tds = [data.deveui, new Date(data.timestamp).toLocaleString(), (data.port||''), (data.codec||''), (data.value||'')];
+                    for (var i=0;i<tds.length;i++){ var td=document.createElement('td'); td.textContent = tds[i]; row.appendChild(td); }
+                    var tbody = document.getElementById('recent-body');
+                    if (tbody) tbody.prepend(row);
+                  } else {
+                    var cells = row.children;
+                    if (cells.length>=5){
+                      cells[1].textContent = new Date(data.timestamp).toLocaleString();
+                      cells[2].textContent = (data.port||'');
+                      cells[3].textContent = (data.codec||'');
+                      cells[4].textContent = (data.value||'');
+                    }
+                  }
+                } catch(e) {}
+              }
+            }catch(err){}
+          };
+        } catch(e) {}
+      })();
+    </script>
+  </div>
+</body>
+</html>
+  <div class="card">
+    <h2>Recently Seen Devices</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Device</th>
+          <th>Last Seen</th>
+          <th>Port</th>
+          <th>Codec</th>
+          <th>Last Value</th>
+        </tr>
+      </thead>
+      <tbody id="recent-body">
+        {% for dev in recent_devices %}
+          <tr id="dev-{{ dev.deveui }}">
+            <td>{{ dev.deveui }}</td>
+            <td>{{ dev.last_seen }}</td>
+            <td>{{ dev.metadata.last_port }}</td>
+            <td>{% if dev.codec %}{{ dev.codec }}{% else %}{{ dev.metadata.codec }}{% endif %}</td>
+            <td>{{ dev.metadata.last_value }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5">No devices seen recently.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>

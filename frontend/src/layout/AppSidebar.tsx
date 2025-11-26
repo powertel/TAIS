@@ -14,6 +14,7 @@ import {
   Users,
   ChevronDown,
   MoreHorizontal,
+  Activity,
 } from 'lucide-react';
 
 interface NavItem {
@@ -43,6 +44,11 @@ const navItems: NavItem[] = [
     icon: <Zap className="w-5 h-5" />,
     name: "Transformers",
     path: "/transformers",
+  },
+  {
+    icon: <Activity className="w-5 h-5" />,
+    name: "Sensors",
+    path: "/sensors",
   },
   {
     icon: <User className="w-5 h-5" />,

@@ -1,13 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { PermissionProvider } from "./context/PermissionContext";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/UserProfiles";
 import Users from "./pages/UserManagement/Users";
-import Roles from "./pages/UserManagement/Roles";
-import Permissions from "./pages/UserManagement/Permissions";
 import Videos from "./pages/UiElements/Videos";
 import Images from "./pages/UiElements/Images";
 import Alerts from "./pages/UiElements/Alerts";
@@ -25,13 +22,11 @@ import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ItemList from "./components/ItemList";
-import RequirePermission from "./components/RequirePermission";
 import DashboardHome from "./pages/Dashboard/DashboardHome";
 import TransformerDetail from "./pages/Dashboard/TransformerDetail";
 import RegionsPage from "./pages/Dashboard/RegionsPage";
 import DepotsTablePage from "./pages/Dashboard/DepotsTablePage";
 import TransformersPage from "./pages/Dashboard/TransformersPage";
-import SensorsPage from "./pages/Dashboard/SensorsPage";
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
@@ -40,12 +35,11 @@ const AppRoutes = () => {
       <Route
         path="/"
         element={
-          <PermissionProvider>
             <AppLayout />
-          </PermissionProvider>
         }
       >
         <Route index element={<DashboardHome />} />
+        <Route path="dashboard" element={<DashboardHome />} />
         <Route path="signin" element={<Navigate to="/" replace />} />
         <Route path="signup" element={<Navigate to="/" replace />} />
         <Route path="profile" element={<UserProfiles />} />
@@ -64,15 +58,12 @@ const AppRoutes = () => {
         <Route path="regions" element={<RegionsPage />} />
         <Route path="depots" element={<DepotsTablePage />} />
         <Route path="transformers" element={<TransformersPage />} />
-        <Route path="sensors" element={<SensorsPage />} />
         <Route path="transformer/:id" element={<TransformerDetail />} />
         <Route
           path="items"
           element={
             <ProtectedRoute>
-              <RequirePermission permission="api.view_item">
                 <ItemList />
-              </RequirePermission>
             </ProtectedRoute>
           }
         />
@@ -80,32 +71,11 @@ const AppRoutes = () => {
           path="users"
           element={
             <ProtectedRoute>
-              <RequirePermission permission="auth.view_user">
                 <Users />
-              </RequirePermission>
             </ProtectedRoute>
           }
         />
-        <Route
-          path="roles"
-          element={
-            <ProtectedRoute>
-              <RequirePermission permission="auth.view_group">
-                <Roles />
-              </RequirePermission>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="permissions"
-          element={
-            <ProtectedRoute>
-              <RequirePermission permission="auth.view_permission">
-                <Permissions />
-              </RequirePermission>
-            </ProtectedRoute>
-          }
-        />
+        
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

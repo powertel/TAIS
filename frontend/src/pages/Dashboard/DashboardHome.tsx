@@ -80,6 +80,7 @@ export default function DashboardHome() {
   const [transformerSensors, setTransformerSensors] = useState<Record<number, SensorUpdate[]>>({});
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  
 
   const groupedTransformers = useMemo(() => {
     const regions: Record<string, Record<string, TransformerStatus[]>> = {};
@@ -131,6 +132,8 @@ export default function DashboardHome() {
       fetchDashboardData();
     }
   }, [token]);
+
+  
 
   // Process real-time updates
   useEffect(() => {
@@ -333,6 +336,8 @@ export default function DashboardHome() {
           <div className="mt-4 h-1 w-full bg-gradient-to-r from-orange-100 to-orange-300 rounded-full dark:from-orange-800 dark:to-orange-600"></div>
         </div>
       </div>
+
+      
 
       {/* Real-time Connection Status Banner */}
       <div className="rounded-2xl bg-white/80 p-4 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">

@@ -40,10 +40,6 @@ interface Depot {
   region: number;
 }
 
-interface Group {
-  id: number;
-  name: string;
-}
 
 interface UserFormData {
   username: string;
@@ -53,7 +49,7 @@ interface UserFormData {
   password: string;
   is_active: boolean;
   is_staff: boolean;
-  groups: number[];
+  groups?: number[];
 }
 
 interface ProfileFormData {
@@ -65,6 +61,7 @@ interface ProfileFormData {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/auth-service';
 const ITEMS_PER_PAGE = 10;
 
 export default function Users() {
@@ -73,7 +70,6 @@ export default function Users() {
   const [userProfiles, setUserProfiles] = useState<Record<number, UserProfile>>({});
   const [regions, setRegions] = useState<Region[]>([]);
   const [depots, setDepots] = useState<Depot[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -89,7 +85,6 @@ export default function Users() {
     password: '',
     is_active: true,
     is_staff: false,
-    groups: [],
   });
 
   const [profileData, setProfileData] = useState<ProfileFormData>({
@@ -112,14 +107,12 @@ export default function Users() {
         usersRes,
         profilesRes,
         regionsRes,
-        depotsRes,
-        groupsRes
+        depotsRes
       ] = await Promise.all([
-        axios.get<User[]>(`${API_BASE_URL}/users/`, { headers }),
+        axios.get<User[]>(`${API_BASE_URL}${AUTH_PREFIX}/users/`, { headers }),
         axios.get<UserProfile[]>(`${API_BASE_URL}/user-profiles/`, { headers }),
         axios.get<Region[]>(`${API_BASE_URL}/regions/`, { headers }),
-        axios.get<Depot[]>(`${API_BASE_URL}/depots/`, { headers }),
-        axios.get<Group[]>(`${API_BASE_URL}/groups/`, { headers })
+        axios.get<Depot[]>(`${API_BASE_URL}/depots/`, { headers })
       ]);
 
       setUsers(usersRes.data);
@@ -128,7 +121,6 @@ export default function Users() {
       );
       setRegions(regionsRes.data);
       setDepots(depotsRes.data);
-      setGroups(groupsRes.data);
     } catch (err) {
       const error = err as AxiosError;
       setError(error.message || 'Failed to fetch data');
@@ -208,7 +200,6 @@ export default function Users() {
       password: '',
       is_active: user.is_active,
       is_staff: user.is_staff,
-      groups: [...user.groups],
     });
 
     const userProfile = userProfiles[user.id];
@@ -237,20 +228,19 @@ export default function Users() {
       let userResponse;
       const userPayload = {
         ...formData,
-        groups: formData.groups
       };
 
       if (editingUser) {
         // Update existing user
         userResponse = await axios.patch(
-          `${API_BASE_URL}/users/${editingUser.id}/`,
+          `${API_BASE_URL}${AUTH_PREFIX}/users/${editingUser.id}/`,
           userPayload,
           { headers }
         );
       } else {
         // Create new user
         userResponse = await axios.post(
-          `${API_BASE_URL}/users/`,
+          `${API_BASE_URL}${AUTH_PREFIX}/users/`,
           userPayload,
           { headers }
         );
@@ -298,7 +288,7 @@ export default function Users() {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      await axios.delete(`${API_BASE_URL}/users/${userId}/`, {
+      await axios.delete(`${API_BASE_URL}${AUTH_PREFIX}/users/${userId}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       await fetchData();
@@ -318,7 +308,6 @@ export default function Users() {
       password: '',
       is_active: true,
       is_staff: false,
-      groups: [],
     });
     setProfileData({
       region: null,
@@ -393,9 +382,7 @@ export default function Users() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
+                
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
@@ -406,7 +393,6 @@ export default function Users() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {paginatedUsers.map((user) => {
-                const profile = userProfiles[user.id];
                 return (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -424,11 +410,7 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.email}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        {user.is_superuser ? 'Admin' : user.is_staff ? 'Staff' : 'User'}
-                      </span>
-                    </td>
+                    
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -698,35 +680,7 @@ export default function Users() {
                           </div>
                         </div>
 
-                        {/* Groups/Roles */}
-                        <div className="sm:col-span-3">
-                          <label className="block text-sm font-medium text-gray-700">Roles</label>
-                          <div className="mt-2 space-y-2 max-h-40 overflow-y-auto p-2 border rounded">
-                            {groups.map((group) => (
-                              <div key={group.id} className="flex items-center">
-                                <input
-                                  id={`group-${group.id}`}
-                                  name="groups"
-                                  type="checkbox"
-                                  checked={formData.groups.includes(group.id)}
-                                  onChange={(e) => {
-                                    const { checked } = e.target;
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      groups: checked
-                                        ? [...prev.groups, group.id]
-                                        : prev.groups.filter(id => id !== group.id)
-                                    }));
-                                  }}
-                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                />
-                                <label htmlFor={`group-${group.id}`} className="ml-2 block text-sm text-gray-700">
-                                  {group.name}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                        
 
                         {/* User Profile Section */}
                         <div className="sm:col-span-6 border-t border-gray-200 pt-4">

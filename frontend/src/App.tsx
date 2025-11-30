@@ -12,6 +12,7 @@ import ProtectedRoute from "./components/ProtectedRoute"
 import DashboardHome from "./pages/Dashboard/DashboardHome";
 import TransformerDetail from "./pages/Dashboard/TransformerDetail";
 import RegionsIndex from "./pages/Regions";
+import DistrictsIndex from "./pages/Districts";
 import DepotsTablePage from "./pages/Dashboard/DepotsTablePage";
 import TransformersPage from "./pages/Dashboard/TransformersPage";
 
@@ -33,6 +34,7 @@ const AppRoutes = () => {
         <Route path="calendar" element={<Calendar />} />
         <Route path="blank" element={<Blank />} />
         <Route path="regions" element={<RegionsIndex />} />
+        <Route path="districts" element={<DistrictsIndex />} />
         <Route path="depots" element={<DepotsTablePage />} />
         <Route path="transformers" element={<TransformersPage />} />
         <Route path="transformer/:id" element={<TransformerDetail />} />

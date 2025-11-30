@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import { Modal } from '../../components/ui/modal';
+import Alert from '../../components/ui/alert/Alert';
 
 interface Region {
   id: number;
@@ -26,6 +27,7 @@ export default function RegionsIndex() {
   const [savingCreate, setSavingCreate] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ variant: 'success' | 'error' | 'info' | 'warning'; title: string; message: string } | null>(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
   const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/auth-service';
@@ -100,8 +102,12 @@ export default function RegionsIndex() {
       setShowCreate(false);
       setNameInput('');
       await fetchRegions();
+      setNotice({ variant: 'success', title: 'Region created', message: 'The region was created successfully.' });
+      setTimeout(() => setNotice(null), 4000);
     } catch {
       setFormError('Failed to create region');
+      setNotice({ variant: 'error', title: 'Create failed', message: 'Could not create the region.' });
+      setTimeout(() => setNotice(null), 5000);
     } finally {
       setSavingCreate(false);
     }
@@ -119,8 +125,12 @@ export default function RegionsIndex() {
       setActiveRegion(null);
       setNameInput('');
       await fetchRegions();
+      setNotice({ variant: 'success', title: 'Region updated', message: 'Changes were saved successfully.' });
+      setTimeout(() => setNotice(null), 4000);
     } catch {
       setFormError('Failed to update region');
+      setNotice({ variant: 'error', title: 'Update failed', message: 'Could not update the region.' });
+      setTimeout(() => setNotice(null), 5000);
     } finally {
       setSavingEdit(false);
     }
@@ -147,6 +157,9 @@ export default function RegionsIndex() {
 
   return (
     <div className="space-y-6">
+      {notice && (
+        <Alert variant={notice.variant} title={notice.title} message={notice.message} />
+      )}
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-black dark:text-white">Regions</h2>
         <div className="flex items-center gap-2">

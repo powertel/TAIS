@@ -35,6 +35,11 @@ const navItems: NavItem[] = [
     path: "/regions",
   },
   {
+    icon: <MapPinned className="w-5 h-5" />,
+    name: "Districts",
+    path: "/districts",
+  },
+  {
     icon: <Warehouse className="w-5 h-5" />,
     name: "Depots",
     path: "/depots",

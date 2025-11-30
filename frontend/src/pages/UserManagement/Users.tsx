@@ -5,6 +5,10 @@ import type { AxiosError } from 'axios';
 import Alert from '../../components/ui/alert/Alert';
 import { Modal } from '../../components/ui/modal';
 
+interface RegionOption { id: number; name: string }
+interface DistrictOption { id: number; name: string; regionId?: number; region?: { id: number; name: string } }
+interface DepotOption { id: number; name: string; districtId?: number; district?: { id: number; name: string } }
+
 interface User {
   id: number;
   firstname?: string;
@@ -20,6 +24,7 @@ interface User {
  
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/auth-service';
 const ITEMS_PER_PAGE = 10;
 
 export default function Users() {
@@ -43,6 +48,12 @@ export default function Users() {
   const [regionInput, setRegionInput] = useState('');
   const [districtInput, setDistrictInput] = useState('');
   const [depotInput, setDepotInput] = useState('');
+  const [regions, setRegions] = useState<RegionOption[]>([]);
+  const [districts, setDistricts] = useState<DistrictOption[]>([]);
+  const [depots, setDepots] = useState<DepotOption[]>([]);
+  const [selectedRegionId, setSelectedRegionId] = useState<number | ''>('');
+  const [selectedDistrictId, setSelectedDistrictId] = useState<number | ''>('');
+  const [selectedDepotId, setSelectedDepotId] = useState<number | ''>('');
   const [savingCreate, setSavingCreate] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -75,6 +86,58 @@ export default function Users() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const normalizeList = <T,>(payload: unknown): T[] => {
+    if (Array.isArray(payload)) return payload as T[];
+    const obj = payload as Record<string, unknown>;
+    const candidates = ['data', 'content', 'items', 'records'];
+    for (const key of candidates) {
+      const v = obj?.[key] as unknown;
+      if (Array.isArray(v)) return v as T[];
+    }
+    return [] as T[];
+  };
+
+  const fetchRegionsOptions = useCallback(async () => {
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/regions`, { headers });
+      const arr = Array.isArray(res.data) ? (res.data as RegionOption[]) : ((res.data?.data as RegionOption[]) ?? []);
+      setRegions(arr.map((r) => ({ id: r.id, name: r.name })));
+    } catch {
+      setRegions([]);
+    }
+  }, [API_BASE_URL, AUTH_PREFIX, token]);
+
+  const fetchDistrictsOptions = useCallback(async () => {
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/districts`, { headers });
+      const list = normalizeList<DistrictOption>(res.data);
+      setDistricts(list.map(d => ({ id: d.id, name: d.name, regionId: d.region?.id ?? d.regionId, region: d.region })));
+    } catch {
+      setDistricts([]);
+    }
+  }, [API_BASE_URL, AUTH_PREFIX, token]);
+
+  const fetchDepotsOptions = useCallback(async () => {
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/depots`, { headers });
+      const list = normalizeList<DepotOption>(res.data);
+      setDepots(list.map(d => ({ id: d.id, name: d.name, districtId: d.district?.id ?? d.districtId, district: d.district })));
+    } catch {
+      setDepots([]);
+    }
+  }, [API_BASE_URL, AUTH_PREFIX, token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchRegionsOptions();
+      fetchDistrictsOptions();
+      fetchDepotsOptions();
+    }
+  }, [token, fetchRegionsOptions, fetchDistrictsOptions, fetchDepotsOptions]);
 
   // Filter and paginate users
   const filteredUsers = users.filter(user => {
@@ -112,6 +175,12 @@ export default function Users() {
     setRegionInput(user.region ?? '');
     setDistrictInput(user.district ?? '');
     setDepotInput(user.depot ?? '');
+    const r = regions.find(x => x.name === (user.region ?? ''));
+    const d = districts.find(x => x.name === (user.district ?? ''));
+    const dp = depots.find(x => x.name === (user.depot ?? ''));
+    setSelectedRegionId(r?.id ?? '');
+    setSelectedDistrictId(d?.id ?? '');
+    setSelectedDepotId(dp?.id ?? '');
     setFormError(null);
     setShowEdit(true);
   };
@@ -278,10 +347,13 @@ export default function Users() {
             setRegionInput('');
             setDistrictInput('');
             setDepotInput('');
+            setSelectedRegionId('');
+            setSelectedDistrictId('');
+            setSelectedDepotId('');
             setActive(null);
             setFormError(null);
             setShowCreate(true);
-          }} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Add User</button>
+          }} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text.white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Add User</button>
         </div>
       </div>
 
@@ -500,21 +572,66 @@ export default function Users() {
                         </div>
                         <div className="sm:col-span-3">
                           <label htmlFor="region" className="block text-sm font-medium text-gray-700">Region</label>
-                          <div className="mt-1">
-                            <input type="text" name="region" id="region" value={regionInput} onChange={(e) => setRegionInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
-                          </div>
+                          <select
+                            id="region"
+                            value={selectedRegionId}
+                            onChange={(e) => {
+                              const id = e.target.value ? Number(e.target.value) : '';
+                              setSelectedRegionId(id as number | '');
+                              const name = regions.find(r => r.id === Number(e.target.value))?.name ?? '';
+                              setRegionInput(name);
+                              setSelectedDistrictId('');
+                              setSelectedDepotId('');
+                              setDistrictInput('');
+                              setDepotInput('');
+                            }}
+                            className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm"
+                          >
+                            <option value="">Select region</option>
+                            {regions.map(r => (
+                              <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                          </select>
                         </div>
                         <div className="sm:col-span-3">
                           <label htmlFor="district" className="block text-sm font-medium text-gray-700">District</label>
-                          <div className="mt-1">
-                            <input type="text" name="district" id="district" value={districtInput} onChange={(e) => setDistrictInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
-                          </div>
+                          <select
+                            id="district"
+                            value={selectedDistrictId}
+                            onChange={(e) => {
+                              const id = e.target.value ? Number(e.target.value) : '';
+                              setSelectedDistrictId(id as number | '');
+                              const name = districts.find(d => d.id === Number(e.target.value))?.name ?? '';
+                              setDistrictInput(name);
+                              setSelectedDepotId('');
+                              setDepotInput('');
+                            }}
+                            className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm"
+                          >
+                            <option value="">Select district</option>
+                            {(selectedRegionId ? districts.filter(d => (d.region?.id ?? d.regionId) === selectedRegionId) : districts).map(d => (
+                              <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                          </select>
                         </div>
                         <div className="sm:col-span-3">
                           <label htmlFor="depot" className="block text-sm font-medium text-gray-700">Depot</label>
-                          <div className="mt-1">
-                            <input type="text" name="depot" id="depot" value={depotInput} onChange={(e) => setDepotInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
-                          </div>
+                          <select
+                            id="depot"
+                            value={selectedDepotId}
+                            onChange={(e) => {
+                              const id = e.target.value ? Number(e.target.value) : '';
+                              setSelectedDepotId(id as number | '');
+                              const name = depots.find(dp => dp.id === Number(e.target.value))?.name ?? '';
+                              setDepotInput(name);
+                            }}
+                            className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm"
+                          >
+                            <option value="">Select depot</option>
+                            {(selectedDistrictId ? depots.filter(dp => (dp.district?.id ?? dp.districtId) === selectedDistrictId) : depots).map(dp => (
+                              <option key={dp.id} value={dp.id}>{dp.name}</option>
+                            ))}
+                          </select>
                         </div>
                       </div>
                     </div>
@@ -566,15 +683,66 @@ export default function Users() {
               </div>
               <div className="sm:col-span-3">
                 <label htmlFor="region" className="block text-sm font-medium text-gray-700">Region</label>
-                <input type="text" name="region" id="region" placeholder="Enter region" value={regionInput} onChange={(e) => setRegionInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+                <select
+                  id="region"
+                  value={selectedRegionId}
+                  onChange={(e) => {
+                    const id = e.target.value ? Number(e.target.value) : '';
+                    setSelectedRegionId(id as number | '');
+                    const name = regions.find(r => r.id === Number(e.target.value))?.name ?? '';
+                    setRegionInput(name);
+                    setSelectedDistrictId('');
+                    setSelectedDepotId('');
+                    setDistrictInput('');
+                    setDepotInput('');
+                  }}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Select region</option>
+                  {regions.map(r => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
               </div>
               <div className="sm:col-span-3">
                 <label htmlFor="district" className="block text-sm font-medium text-gray-700">District</label>
-                <input type="text" name="district" id="district" placeholder="Enter district" value={districtInput} onChange={(e) => setDistrictInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+                <select
+                  id="district"
+                  value={selectedDistrictId}
+                  onChange={(e) => {
+                    const id = e.target.value ? Number(e.target.value) : '';
+                    setSelectedDistrictId(id as number | '');
+                    const name = districts.find(d => d.id === Number(e.target.value))?.name ?? '';
+                    setDistrictInput(name);
+                    setSelectedDepotId('');
+                    setDepotInput('');
+                  }}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Select district</option>
+                  {(selectedRegionId ? districts.filter(d => (d.region?.id ?? d.regionId) === selectedRegionId) : districts).map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
               </div>
               <div className="sm:col-span-3">
                 <label htmlFor="depot" className="block text-sm font-medium text-gray-700">Depot</label>
-                <input type="text" name="depot" id="depot" placeholder="Enter depot" value={depotInput} onChange={(e) => setDepotInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+                <select
+                  id="depot"
+                  value={selectedDepotId}
+                  onChange={(e) => {
+                    const id = e.target.value ? Number(e.target.value) : '';
+                    setSelectedDepotId(id as number | '');
+                    const name = depots.find(dp => dp.id === Number(e.target.value))?.name ?? '';
+                    setDepotInput(name);
+                  }}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Select depot</option>
+                  {(selectedDistrictId ? depots.filter(dp => (dp.district?.id ?? dp.districtId) === selectedDistrictId) : depots).map(dp => (
+                    <option key={dp.id} value={dp.id}>{dp.name}</option>
+                  ))}
+                </select>
               </div>
               {formError && (
                 <div className="sm:col-span-6 text-xs text-red-600">{formError}</div>

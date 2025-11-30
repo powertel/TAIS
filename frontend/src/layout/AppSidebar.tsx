@@ -58,9 +58,7 @@ const navItems: NavItem[] = [
   {
     icon: <Users className="w-5 h-5" />,
     name: "User Management",
-    subItems: [
-      { name: "Users", path: "/users" },
-    ],
+    path: "/users",
   },
   {
     icon: <User className="w-5 h-5" />,

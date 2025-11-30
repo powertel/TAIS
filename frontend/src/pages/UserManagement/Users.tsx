@@ -3,96 +3,55 @@ import { useAuth } from "../../context/AuthContext";
 import axios from 'axios';
 import type { AxiosError } from 'axios';
 
-// Types
 interface User {
   id: number;
-  username: string;
+  firstname?: string;
+  lastname?: string;
   email: string;
-  first_name: string;
-  last_name: string;
-  is_active: boolean;
-  date_joined: string;
-  is_staff: boolean;
-  is_superuser: boolean;
-  groups: number[];
+  phone?: string;
+  role?: string;
+  region?: string;
+  district?: string;
+  depot?: string;
 }
-
-interface UserProfile {
-  id: number;
-  user: number;
-  region: number | null;
-  depot: number | null;
-  is_national_level: boolean;
-  is_region_level: boolean;
-  is_depot_level: boolean;
-  region_name?: string;
-  depot_name?: string;
-}
-
-interface Region {
-  id: number;
-  name: string;
-}
-
-interface Depot {
-  id: number;
-  name: string;
-  region: number;
-}
-
 
 interface UserFormData {
-  username: string;
+  firstname: string;
+  lastname: string;
   email: string;
-  first_name: string;
-  last_name: string;
-  password: string;
-  is_active: boolean;
-  is_staff: boolean;
-  groups?: number[];
-}
-
-interface ProfileFormData {
-  region: number | null;
-  depot: number | null;
-  is_national_level: boolean;
-  is_region_level: boolean;
-  is_depot_level: boolean;
+  phone: string;
+  role: string;
+  region: string;
+  district: string;
+  depot: string;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/auth-service';
 const ITEMS_PER_PAGE = 10;
 
 export default function Users() {
   const { token } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
-  const [userProfiles, setUserProfiles] = useState<Record<number, UserProfile>>({});
-  const [regions, setRegions] = useState<Region[]>([]);
-  const [depots, setDepots] = useState<Depot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordTarget, setPasswordTarget] = useState<User | null>(null);
 
   const [formData, setFormData] = useState<UserFormData>({
-    username: '',
+    firstname: '',
+    lastname: '',
     email: '',
-    first_name: '',
-    last_name: '',
-    password: '',
-    is_active: true,
-    is_staff: false,
-  });
-
-  const [profileData, setProfileData] = useState<ProfileFormData>({
-    region: null,
-    depot: null,
-    is_national_level: false,
-    is_region_level: false,
-    is_depot_level: false,
+    phone: '',
+    role: '',
+    region: '',
+    district: '',
+    depot: '',
   });
 
   // Fetch data
@@ -102,29 +61,12 @@ export default function Users() {
       setError(null);
 
       const headers = { Authorization: `Bearer ${token}` };
-      
-      const [
-        usersRes,
-        profilesRes,
-        regionsRes,
-        depotsRes
-      ] = await Promise.all([
-        axios.get<User[]>(`${API_BASE_URL}${AUTH_PREFIX}/users/`, { headers }),
-        axios.get<UserProfile[]>(`${API_BASE_URL}/user-profiles/`, { headers }),
-        axios.get<Region[]>(`${API_BASE_URL}/regions/`, { headers }),
-        axios.get<Depot[]>(`${API_BASE_URL}/depots/`, { headers })
-      ]);
-
-      setUsers(usersRes.data);
-      setUserProfiles(
-        profilesRes.data.reduce((acc, profile) => ({ ...acc, [profile.user]: profile }), {})
-      );
-      setRegions(regionsRes.data);
-      setDepots(depotsRes.data);
+      const usersRes = await axios.get<User[]>(`${API_BASE_URL}/api/v1/auth/users`, { headers });
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : (usersRes.data?.data ?? []));
     } catch (err) {
       const error = err as AxiosError;
-      setError(error.message || 'Failed to fetch data');
-      console.error('Error fetching data:', error);
+      setError(error.message || 'Failed to fetch users');
+      console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
@@ -138,14 +80,15 @@ export default function Users() {
   const filteredUsers = users.filter(user => {
     const query = search.toLowerCase();
     if (!query) return true;
-    
     return (
-      user.username.toLowerCase().includes(query) ||
+      (user.firstname?.toLowerCase().includes(query) ?? false) ||
+      (user.lastname?.toLowerCase().includes(query) ?? false) ||
       user.email.toLowerCase().includes(query) ||
-      (user.first_name?.toLowerCase().includes(query) ?? false) ||
-      (user.last_name?.toLowerCase().includes(query) ?? false) ||
-      (user.is_active ? 'active' : 'inactive').includes(query) ||
-      (user.is_staff ? 'staff' : '').includes(query)
+      (user.phone?.toLowerCase().includes(query) ?? false) ||
+      (user.role?.toLowerCase().includes(query) ?? false) ||
+      (user.region?.toLowerCase().includes(query) ?? false) ||
+      (user.district?.toLowerCase().includes(query) ?? false) ||
+      (user.depot?.toLowerCase().includes(query) ?? false)
     );
   });
 
@@ -163,7 +106,7 @@ export default function Users() {
       const target = e.target as HTMLInputElement;
       setFormData(prev => ({
         ...prev,
-        [name]: target.checked
+        [name]: target.checked ? 'true' : 'false'
       }));
     } else {
       setFormData(prev => ({
@@ -173,46 +116,18 @@ export default function Users() {
     }
   };
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
-      const target = e.target as HTMLInputElement;
-      setProfileData(prev => ({
-        ...prev,
-        [name]: target.checked
-      }));
-    } else {
-      setProfileData(prev => ({
-        ...prev,
-        [name]: value === '' ? null : Number(value)
-      }));
-    }
-  };
-
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setFormData({
-      username: user.username,
+      firstname: user.firstname ?? '',
+      lastname: user.lastname ?? '',
       email: user.email,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      password: '',
-      is_active: user.is_active,
-      is_staff: user.is_staff,
+      phone: user.phone ?? '',
+      role: user.role ?? '',
+      region: user.region ?? '',
+      district: user.district ?? '',
+      depot: user.depot ?? '',
     });
-
-    const userProfile = userProfiles[user.id];
-    if (userProfile) {
-      setProfileData({
-        region: userProfile.region,
-        depot: userProfile.depot,
-        is_national_level: userProfile.is_national_level,
-        is_region_level: userProfile.is_region_level,
-        is_depot_level: userProfile.is_depot_level,
-      });
-    }
-
     setShowForm(true);
   };
 
@@ -224,51 +139,18 @@ export default function Users() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       };
-
-      let userResponse;
-      const userPayload = {
-        ...formData,
-      };
+      const userPayload = { ...formData };
 
       if (editingUser) {
-        // Update existing user
-        userResponse = await axios.patch(
-          `${API_BASE_URL}${AUTH_PREFIX}/users/${editingUser.id}/`,
+        await axios.put(
+          `${API_BASE_URL}/api/v1/auth/update/id/${editingUser.id}`,
           userPayload,
-          { headers }
-        );
-      } else {
-        // Create new user
-        userResponse = await axios.post(
-          `${API_BASE_URL}${AUTH_PREFIX}/users/`,
-          userPayload,
-          { headers }
-        );
-      }
-
-      // Handle user profile
-      const userId = userResponse.data.id;
-      const profilePayload = {
-        user: userId,
-        ...profileData,
-        region: profileData.region || null,
-        depot: profileData.depot || null,
-      };
-
-      const existingProfile = Object.values(userProfiles).find(
-        p => p.user === userId
-      );
-
-      if (existingProfile) {
-        await axios.patch(
-          `${API_BASE_URL}/user-profiles/${existingProfile.id}/`,
-          profilePayload,
           { headers }
         );
       } else {
         await axios.post(
-          `${API_BASE_URL}/user-profiles/`,
-          profilePayload,
+          `${API_BASE_URL}/api/v1/auth/register`,
+          userPayload,
           { headers }
         );
       }
@@ -284,39 +166,43 @@ export default function Users() {
     }
   };
 
-  const handleDeleteUser = async (userId: number) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
-
-    try {
-      await axios.delete(`${API_BASE_URL}${AUTH_PREFIX}/users/${userId}/`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      await fetchData();
-    } catch (err) {
-      const error = err as AxiosError;
-      setError(error.message || 'Failed to delete user');
-      console.error('Error deleting user:', error);
-    }
-  };
+  // Delete action removed: no delete endpoint provided
 
   const resetForm = () => {
     setFormData({
-      username: '',
+      firstname: '',
+      lastname: '',
       email: '',
-      first_name: '',
-      last_name: '',
-      password: '',
-      is_active: true,
-      is_staff: false,
-    });
-    setProfileData({
-      region: null,
-      depot: null,
-      is_national_level: false,
-      is_region_level: false,
-      is_depot_level: false,
+      phone: '',
+      role: '',
+      region: '',
+      district: '',
+      depot: '',
     });
     setEditingUser(null);
+  };
+
+  const openChangePassword = (user: User) => {
+    setPasswordTarget(user);
+    setCurrentPassword('');
+    setNewPassword('');
+    setShowChangePassword(true);
+  };
+
+  const submitChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordTarget) return;
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      await axios.post(`${API_BASE_URL}/api/v1/auth/change-password/${passwordTarget.email}/${encodeURIComponent(currentPassword)}/${encodeURIComponent(newPassword)}`, null, { headers });
+      setShowChangePassword(false);
+      setPasswordTarget(null);
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err) {
+      const error = err as AxiosError;
+      setError(error.message || 'Failed to change password');
+    }
   };
 
   if (loading) {
@@ -383,9 +269,8 @@ export default function Users() {
                   Email
                 </th>
                 
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
@@ -398,12 +283,7 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.first_name} {user.last_name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            @{user.username}
-                          </div>
+                          <div className="text-sm font-medium text-gray-900">{user.firstname ?? ''} {user.lastname ?? ''}</div>
                         </div>
                       </div>
                     </td>
@@ -411,30 +291,11 @@ export default function Users() {
                       {user.email}
                     </td>
                     
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          user.is_active
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {user.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role ?? '—'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone ?? '—'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleEditUser(user)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
+                      <button onClick={() => handleEditUser(user)} className="text-blue-600 hover:text-blue-900 mr-4">Edit</button>
+                      <button onClick={() => openChangePassword(user)} className="text-gray-700 hover:text-gray-900">Change Password</button>
                     </td>
                   </tr>
                 );
@@ -557,21 +418,10 @@ export default function Users() {
                         {editingUser ? 'Edit User' : 'Create New User'}
                       </h3>
                       <div className="mt-5 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                        {/* Username */}
                         <div className="sm:col-span-3">
-                          <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                            Username *
-                          </label>
+                          <label htmlFor="firstname" className="block text-sm font-medium text-gray-700">First Name *</label>
                           <div className="mt-1">
-                            <input
-                              type="text"
-                              name="username"
-                              id="username"
-                              required
-                              value={formData.username}
-                              onChange={handleFormChange}
-                              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                            />
+                            <input type="text" name="firstname" id="firstname" required value={formData.firstname} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
 
@@ -593,188 +443,53 @@ export default function Users() {
                           </div>
                         </div>
 
-                        {/* First Name */}
                         <div className="sm:col-span-3">
-                          <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
-                            First Name
-                          </label>
+                          <label htmlFor="lastname" className="block text-sm font-medium text-gray-700">Last Name *</label>
                           <div className="mt-1">
-                            <input
-                              type="text"
-                              name="first_name"
-                              id="first_name"
-                              value={formData.first_name}
-                              onChange={handleFormChange}
-                              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                            />
+                            <input type="text" name="lastname" id="lastname" required value={formData.lastname} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
 
-                        {/* Last Name */}
                         <div className="sm:col-span-3">
-                          <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
-                            Last Name
-                          </label>
+                          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
                           <div className="mt-1">
-                            <input
-                              type="text"
-                              name="last_name"
-                              id="last_name"
-                              value={formData.last_name}
-                              onChange={handleFormChange}
-                              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Password - only show for new users */}
-                        {!editingUser && (
-                          <div className="sm:col-span-6">
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                              Password {!editingUser && '*'}
-                            </label>
-                            <div className="mt-1">
-                              <input
-                                type="password"
-                                name="password"
-                                id="password"
-                                required={!editingUser}
-                                value={formData.password}
-                                onChange={handleFormChange}
-                                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Status */}
-                        <div className="sm:col-span-3">
-                          <label className="block text-sm font-medium text-gray-700">Status</label>
-                          <div className="mt-2 space-y-2">
-                            <div className="flex items-center">
-                              <input
-                                id="is_active"
-                                name="is_active"
-                                type="checkbox"
-                                checked={formData.is_active}
-                                onChange={handleFormChange}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                              />
-                              <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700">
-                                Active
-                              </label>
-                            </div>
-                            <div className="flex items-center">
-                              <input
-                                id="is_staff"
-                                name="is_staff"
-                                type="checkbox"
-                                checked={formData.is_staff}
-                                onChange={handleFormChange}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                              />
-                              <label htmlFor="is_staff" className="ml-2 block text-sm text-gray-700">
-                                Staff status
-                              </label>
-                            </div>
+                            <input type="text" name="phone" id="phone" value={formData.phone} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
 
                         
 
-                        {/* User Profile Section */}
-                        <div className="sm:col-span-6 border-t border-gray-200 pt-4">
-                          <h4 className="text-sm font-medium text-gray-700 mb-4">User Profile</h4>
-                          
-                          {/* Access Level */}
-                          <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3 mb-4">
-                            <div className="flex items-center">
-                              <input
-                                id="is_national_level"
-                                name="is_national_level"
-                                type="checkbox"
-                                checked={profileData.is_national_level}
-                                onChange={handleProfileChange}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                              />
-                              <label htmlFor="is_national_level" className="ml-2 block text-sm text-gray-700">
-                                National Level
-                              </label>
-                            </div>
-                            <div className="flex items-center">
-                              <input
-                                id="is_region_level"
-                                name="is_region_level"
-                                type="checkbox"
-                                checked={profileData.is_region_level}
-                                onChange={handleProfileChange}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                              />
-                              <label htmlFor="is_region_level" className="ml-2 block text-sm text-gray-700">
-                                Region Level
-                              </label>
-                            </div>
-                            <div className="flex items-center">
-                              <input
-                                id="is_depot_level"
-                                name="is_depot_level"
-                                type="checkbox"
-                                checked={profileData.is_depot_level}
-                                onChange={handleProfileChange}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                              />
-                              <label htmlFor="is_depot_level" className="ml-2 block text-sm text-gray-700">
-                                Depot Level
-                              </label>
-                            </div>
+                        
+
+                        
+
+                        
+                        <div className="sm:col-span-3">
+                          <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
+                          <div className="mt-1">
+                            <select name="role" id="role" value={formData.role} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                              <option value="">Select role</option>
+                              <option value="ADMIN">ADMIN</option>
+                              <option value="USER">USER</option>
+                            </select>
                           </div>
-
-                          {/* Region and Depot Selection */}
-                          <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
-                            {/* Region */}
-                            <div>
-                              <label htmlFor="region" className="block text-sm font-medium text-gray-700">
-                                Region
-                              </label>
-                              <select
-                                id="region"
-                                name="region"
-                                value={profileData.region || ''}
-                                onChange={handleProfileChange}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                              >
-                                <option value="">Select a region</option>
-                                {regions.map((region) => (
-                                  <option key={region.id} value={region.id}>
-                                    {region.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            {/* Depot - filtered by selected region */}
-                            <div>
-                              <label htmlFor="depot" className="block text-sm font-medium text-gray-700">
-                                Depot
-                              </label>
-                              <select
-                                id="depot"
-                                name="depot"
-                                value={profileData.depot || ''}
-                                onChange={handleProfileChange}
-                                disabled={!profileData.region}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md disabled:bg-gray-50"
-                              >
-                                <option value="">Select a depot</option>
-                                {depots
-                                  .filter((depot) => depot.region === profileData.region)
-                                  .map((depot) => (
-                                    <option key={depot.id} value={depot.id}>
-                                      {depot.name}
-                                    </option>
-                                  ))}
-                              </select>
-                            </div>
+                        </div>
+                        <div className="sm:col-span-3">
+                          <label htmlFor="region" className="block text-sm font-medium text-gray-700">Region</label>
+                          <div className="mt-1">
+                            <input type="text" name="region" id="region" value={formData.region} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                          </div>
+                        </div>
+                        <div className="sm:col-span-3">
+                          <label htmlFor="district" className="block text-sm font-medium text-gray-700">District</label>
+                          <div className="mt-1">
+                            <input type="text" name="district" id="district" value={formData.district} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                          </div>
+                        </div>
+                        <div className="sm:col-span-3">
+                          <label htmlFor="depot" className="block text-sm font-medium text-gray-700">Depot</label>
+                          <div className="mt-1">
+                            <input type="text" name="depot" id="depot" value={formData.depot} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
                       </div>
@@ -795,6 +510,40 @@ export default function Users() {
                   >
                     Cancel
                   </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showChangePassword && passwordTarget && (
+        <div className="fixed inset-0 overflow-y-auto" role="dialog" aria-modal="true">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowChangePassword(false)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <form onSubmit={submitChangePassword}>
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                      <h3 className="text-lg leading-6 font-medium text-gray-900">Change Password</h3>
+                      <div className="mt-5 space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Current Password</label>
+                          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="mt-1 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">New Password</label>
+                          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-1 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button type="submit" className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">Update Password</button>
+                  <button type="button" onClick={() => setShowChangePassword(false)} className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancel</button>
                 </div>
               </form>
             </div>

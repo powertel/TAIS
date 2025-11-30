@@ -4,19 +4,19 @@ import axios from 'axios';
 import { Modal } from '../../components/ui/modal';
 import Alert from '../../components/ui/alert/Alert';
 
-interface District {
+interface Depot {
   id: number;
   name: string;
-  regionId?: number;
-  region?: { id: number; name: string };
+  districtId?: number;
+  district?: { id: number; name: string };
 }
 
-interface RegionOption { id: number; name: string }
+interface DistrictOption { id: number; name: string }
 
-export default function DistrictsIndex() {
+export default function DepotsIndex() {
   const { token } = useAuth();
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [regions, setRegions] = useState<RegionOption[]>([]);
+  const [depots, setDepots] = useState<Depot[]>([]);
+  const [districts, setDistricts] = useState<DistrictOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -26,9 +26,9 @@ export default function DistrictsIndex() {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showView, setShowView] = useState(false);
-  const [activeDistrict, setActiveDistrict] = useState<District | null>(null);
+  const [activeDepot, setActiveDepot] = useState<Depot | null>(null);
   const [nameInput, setNameInput] = useState('');
-  const [regionInput, setRegionInput] = useState<number | ''>('');
+  const [districtInput, setDistrictInput] = useState<number | ''>('');
   const [savingCreate, setSavingCreate] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -38,35 +38,35 @@ export default function DistrictsIndex() {
   const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/auth-service';
   const headers = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : undefined), [token]);
 
-  const normalizeList = (payload: unknown): District[] => {
-    if (Array.isArray(payload)) return payload as District[];
+  const normalizeList = (payload: unknown): Depot[] => {
+    if (Array.isArray(payload)) return payload as Depot[];
     const obj = payload as Record<string, unknown>;
     const candidates = ['data', 'content', 'items', 'records'];
     for (const key of candidates) {
       const v = obj?.[key] as unknown;
-      if (Array.isArray(v)) return v as District[];
+      if (Array.isArray(v)) return v as Depot[];
     }
     return [];
   };
 
-  const fetchRegionsOptions = useCallback(async () => {
+  const fetchDistrictOptions = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/regions`, { headers });
-      const arr = Array.isArray(res.data) ? (res.data as RegionOption[]) : ((res.data?.data as RegionOption[]) ?? []);
-      setRegions(arr.map((r) => ({ id: r.id, name: r.name })));
+      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/districts`, { headers });
+      const arr = Array.isArray(res.data) ? (res.data as DistrictOption[]) : ((res.data?.data as DistrictOption[]) ?? []);
+      setDistricts(arr.map((d) => ({ id: d.id, name: d.name })));
     } catch {
-      setRegions([]);
+      setDistricts([]);
     }
   }, [API_BASE_URL, AUTH_PREFIX, headers]);
 
-  const fetchDistricts = useCallback(async () => {
+  const fetchDepots = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/districts`, { headers });
-      setDistricts(normalizeList(res.data));
+      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/depots`, { headers });
+      setDepots(normalizeList(res.data));
     } catch {
-      setError('Failed to fetch districts');
+      setError('Failed to fetch depots');
     } finally {
       setLoading(false);
     }
@@ -74,41 +74,41 @@ export default function DistrictsIndex() {
 
   useEffect(() => {
     if (token) {
-      fetchRegionsOptions();
-      fetchDistricts();
+      fetchDistrictOptions();
+      fetchDepots();
     }
-  }, [token, fetchRegionsOptions, fetchDistricts]);
+  }, [token, fetchDistrictOptions, fetchDepots]);
 
   const openCreate = () => {
     setNameInput('');
-    setRegionInput('');
-    setActiveDistrict(null);
+    setDistrictInput('');
+    setActiveDepot(null);
     setFormError(null);
     setShowCreate(true);
   };
 
-  const openEdit = async (district: District) => {
+  const openEdit = async (depot: Depot) => {
     try {
-      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/districts/${district.id}`, { headers });
-      const d = (res.data as District) || district;
-      setActiveDistrict(d);
+      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/depots/${depot.id}`, { headers });
+      const d = (res.data as Depot) || depot;
+      setActiveDepot(d);
       setNameInput(d.name);
-      setRegionInput(d.region?.id ?? d.regionId ?? '');
+      setDistrictInput(d.district?.id ?? d.districtId ?? '');
     } catch {
-      setActiveDistrict(district);
-      setNameInput(district.name);
-      setRegionInput(district.region?.id ?? district.regionId ?? '');
+      setActiveDepot(depot);
+      setNameInput(depot.name);
+      setDistrictInput(depot.district?.id ?? depot.districtId ?? '');
     }
     setFormError(null);
     setShowEdit(true);
   };
 
-  const openView = async (district: District) => {
+  const openView = async (depot: Depot) => {
     try {
-      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/districts/${district.id}`, { headers });
-      setActiveDistrict(res.data as District);
+      const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/depots/${depot.id}`, { headers });
+      setActiveDepot(res.data as Depot);
     } catch {
-      setActiveDistrict(district);
+      setActiveDepot(depot);
     }
     setShowView(true);
   };
@@ -117,19 +117,19 @@ export default function DistrictsIndex() {
     e.preventDefault();
     try {
       if (!nameInput || nameInput.trim().length < 2) { setFormError('Enter a valid name'); return; }
-      if (!regionInput || typeof regionInput !== 'number') { setFormError('Select a region'); return; }
+      if (!districtInput || typeof districtInput !== 'number') { setFormError('Select a district'); return; }
       setSavingCreate(true);
       setFormError(null);
-      await axios.post(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/districts/create`, { name: nameInput.trim(), regionId: regionInput }, { headers });
+      await axios.post(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/depots/create`, { name: nameInput.trim(), districtId: districtInput }, { headers });
       setShowCreate(false);
       setNameInput('');
-      setRegionInput('');
-      await fetchDistricts();
-      setNotice({ variant: 'success', title: 'District created', message: 'The district was created successfully.' });
+      setDistrictInput('');
+      await fetchDepots();
+      setNotice({ variant: 'success', title: 'Depot created', message: 'The depot was created successfully.' });
       setTimeout(() => setNotice(null), 4000);
     } catch {
-      setFormError('Failed to create district');
-      setNotice({ variant: 'error', title: 'Create failed', message: 'Could not create the district.' });
+      setFormError('Failed to create depot');
+      setNotice({ variant: 'error', title: 'Create failed', message: 'Could not create the depot.' });
       setTimeout(() => setNotice(null), 5000);
     } finally {
       setSavingCreate(false);
@@ -139,47 +139,47 @@ export default function DistrictsIndex() {
   const submitEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (!activeDistrict) return;
+      if (!activeDepot) return;
       if (!nameInput || nameInput.trim().length < 2) { setFormError('Enter a valid name'); return; }
-      if (!regionInput || typeof regionInput !== 'number') { setFormError('Select a region'); return; }
+      if (!districtInput || typeof districtInput !== 'number') { setFormError('Select a district'); return; }
       setSavingEdit(true);
       setFormError(null);
-      await axios.put(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/districts/${activeDistrict.id}`, { name: nameInput.trim(), regionId: regionInput }, { headers });
+      await axios.put(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/depots/${activeDepot.id}`, { name: nameInput.trim(), districtId: districtInput }, { headers });
       setShowEdit(false);
-      setActiveDistrict(null);
+      setActiveDepot(null);
       setNameInput('');
-      setRegionInput('');
-      await fetchDistricts();
-      setNotice({ variant: 'success', title: 'District updated', message: 'Changes were saved successfully.' });
+      setDistrictInput('');
+      await fetchDepots();
+      setNotice({ variant: 'success', title: 'Depot updated', message: 'Changes were saved successfully.' });
       setTimeout(() => setNotice(null), 4000);
     } catch {
-      setFormError('Failed to update district');
-      setNotice({ variant: 'error', title: 'Update failed', message: 'Could not update the district.' });
+      setFormError('Failed to update depot');
+      setNotice({ variant: 'error', title: 'Update failed', message: 'Could not update the depot.' });
       setTimeout(() => setNotice(null), 5000);
     } finally {
       setSavingEdit(false);
     }
   };
 
-  const deleteDistrict = async (id: number) => {
-    if (!window.confirm('Delete this district?')) return;
+  const deleteDepot = async (id: number) => {
+    if (!window.confirm('Delete this depot?')) return;
     try {
-      await axios.delete(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/districts/${id}`, { headers });
-      await fetchDistricts();
-      setNotice({ variant: 'success', title: 'District deleted', message: 'The district was deleted successfully.' });
+      await axios.delete(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/depots/${id}`, { headers });
+      await fetchDepots();
+      setNotice({ variant: 'success', title: 'Depot deleted', message: 'The depot was deleted successfully.' });
       setTimeout(() => setNotice(null), 4000);
     } catch {
-      setError('Failed to delete district');
-      setNotice({ variant: 'error', title: 'Delete failed', message: 'Could not delete the district.' });
+      setError('Failed to delete depot');
+      setNotice({ variant: 'error', title: 'Delete failed', message: 'Could not delete the depot.' });
       setTimeout(() => setNotice(null), 5000);
     }
   };
 
-  const filtered = districts.filter((d) => {
+  const filtered = depots.filter((d) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
-    const rName = regions.find(r => r.id === (d.region?.id ?? d.regionId))?.name ?? '';
-    return d.name.toLowerCase().includes(q) || rName.toLowerCase().includes(q);
+    const distName = districts.find(x => x.id === (d.district?.id ?? d.districtId))?.name ?? '';
+    return d.name.toLowerCase().includes(q) || distName.toLowerCase().includes(q);
   });
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -192,7 +192,7 @@ export default function DistrictsIndex() {
     setSelectedIds((prev) => (checked ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id)));
   };
 
-  if (loading) return <div className="p-4">Loading districts...</div>;
+  if (loading) return <div className="p-4">Loading depots...</div>;
   if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
@@ -201,9 +201,10 @@ export default function DistrictsIndex() {
         <Alert variant={notice.variant} title={notice.title} message={notice.message} />
       )}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-black dark:text-white">Districts</h2>
+        <h2 className="text-xl font-semibold text-black dark:text-white">Depots</h2>
         <div className="flex items-center gap-2">
-          <button onClick={openCreate} className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90">Add District</button>
+          {/* <button onClick={fetchDepots} className="rounded bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Refresh</button> */}
+          <button onClick={openCreate} className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90">Add Depot</button>
         </div>
       </div>
 
@@ -213,8 +214,8 @@ export default function DistrictsIndex() {
             <input type="text" placeholder="Search..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm w-[240px]" />
           </div>
           <div className="flex items-center gap-2">
-            {/* <button onClick={fetchDistricts} className="rounded bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Refresh</button> */}
-            <button onClick={openCreate} className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">New District</button>
+            {/* <button onClick={fetchDepots} className="rounded bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Refresh</button> */}
+            <button onClick={openCreate} className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">New Depot</button>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -223,7 +224,7 @@ export default function DistrictsIndex() {
               <tr>
                 <th className="px-6 py-3"><input type="checkbox" aria-label="Select all" checked={paginated.length > 0 && selectedIds.length === paginated.length} onChange={(e) => toggleSelectAll(e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Region</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">District</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -231,26 +232,26 @@ export default function DistrictsIndex() {
               {paginated.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-sm text-gray-600">
-                    No districts found.
+                    No depots found.
                     <div className="mt-4 flex items-center justify-center gap-2">
-                      {/* <button onClick={fetchDistricts} className="rounded bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Refresh</button> */}
-                      <button onClick={openCreate} className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90">Add District</button>
+                      <button onClick={fetchDepots} className="rounded bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Refresh</button>
+                      <button onClick={openCreate} className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90">Add Depot</button>
                     </div>
                   </td>
                 </tr>
               ) : (
                 paginated.map((d) => {
-                  const rName = regions.find(r => r.id === (d.region?.id ?? d.regionId))?.name ?? d.region?.name ?? '—';
+                  const distName = districts.find(x => x.id === (d.district?.id ?? d.districtId))?.name ?? d.district?.name ?? '—';
                   return (
                     <tr key={d.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4"><input type="checkbox" checked={selectedIds.includes(d.id)} onChange={(e) => toggleSelectOne(d.id, e.target.checked)} className="h-4 w-4 rounded border-gray-300" /></td>
                       <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{d.name}</div></td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{rName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{distName}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="inline-flex items-center gap-3">
                           <button onClick={() => openView(d)} className="text-gray-700 hover:text-gray-900">View</button>
                           <button onClick={() => openEdit(d)} className="text-blue-600 hover:text-blue-900">Edit</button>
-                          <button onClick={() => deleteDistrict(d.id)} className="text-red-600 hover:text-red-900">Delete</button>
+                          <button onClick={() => deleteDepot(d.id)} className="text-red-600 hover:text-red-900">Delete</button>
                         </div>
                       </td>
                     </tr>
@@ -287,58 +288,109 @@ export default function DistrictsIndex() {
         )}
       </div>
 
-      <DistrictCreateModal
+      <DepotCreateModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
         onSubmit={submitCreate}
         name={nameInput}
         setName={setNameInput}
-        regionId={regionInput}
-        setRegionId={setRegionInput}
-        regions={regions}
+        districtId={districtInput}
+        setDistrictId={setDistrictInput}
+        districts={districts}
         saving={savingCreate}
         error={formError}
       />
-      <DistrictEditModal
+      <DepotEditModal
         open={showEdit}
         onClose={() => setShowEdit(false)}
         onSubmit={submitEdit}
         name={nameInput}
         setName={setNameInput}
-        regionId={regionInput}
-        setRegionId={setRegionInput}
-        regions={regions}
+        districtId={districtInput}
+        setDistrictId={setDistrictInput}
+        districts={districts}
         saving={savingEdit}
         error={formError}
       />
-      <DistrictViewModal open={showView} onClose={() => setShowView(false)} district={activeDistrict} regions={regions} />
+      <DepotViewModal open={showView} onClose={() => setShowView(false)} depot={activeDepot} districts={districts} />
     </div>
   );
 }
 
-export function DistrictCreateModal({ open, onClose, onSubmit, name, setName, regionId, setRegionId, regions, saving, error }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; regionId: number | ''; setRegionId: (v: number | '') => void; regions: RegionOption[]; saving?: boolean; error?: string | null; }) {
+function SearchableSelect({ options, value, onChange, placeholder }: { options: { id: number; name: string }[]; value: number | ''; onChange: (v: number | '') => void; placeholder?: string }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const selected = typeof value === 'number' ? options.find(o => o.id === value) : undefined;
+
+  useEffect(() => {
+    setQuery(selected ? selected.name : '');
+  }, [selected]);
+
+  const filtered = options.filter(o => o.name.toLowerCase().includes(query.trim().toLowerCase()));
+
+  return (
+    <div className="relative">
+      <div className="relative group">
+        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+          <svg className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M12.9 14.32a8 8 0 111.414-1.414l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387zM14 8a6 6 0 11-12 0 6 6 0 0112 0z"/></svg>
+        </span>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder || 'Search…'}
+          className="mt-1 block w-full rounded-md border border-gray-300 bg-white pl-10 pr-8 py-2 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm hover:border-gray-400"
+        />
+        <button type="button" onClick={() => setOpen(v => !v)} className="absolute inset-y-0 right-0 px-2 text-gray-400 hover:text-gray-600">
+          <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.06 0L5.25 8.27a.75.75 0 01-.02-1.06z"/></svg>
+        </button>
+      </div>
+      {open && (
+        <div className="absolute z-10 mt-2 w-full rounded-md border border-gray-200 bg-white shadow focus:outline-none">
+          <ul className="max-h-56 overflow-auto">
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-sm text-gray-500">No matches</li>
+            ) : (
+              filtered.map(opt => (
+                <li key={opt.id}>
+                  <button
+                    type="button"
+                    onClick={() => { onChange(opt.id); setQuery(opt.name); setOpen(false); }}
+                    className={`flex w-full px-3 py-2 text-left text-sm ${value === opt.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100'}`}
+                  >
+                    {opt.name}
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function DepotCreateModal({ open, onClose, onSubmit, name, setName, districtId, setDistrictId, districts, saving, error }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; districtId: number | ''; setDistrictId: (v: number | '') => void; districts: DistrictOption[]; saving?: boolean; error?: string | null; }) {
   return (
     <Modal isOpen={open} onClose={onClose} className="max-w-lg w-full p-6" backdropBlur={false}>
       <form onSubmit={onSubmit}>
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-black dark:text-white">Create District</h3>
+          <h3 className="text-lg font-semibold text-black dark:text-white">Create Depot</h3>
           <div>
             <label className="block text-sm font-medium text-gray-700">Name *</label>
             <div className="relative group">
               <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <svg className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 016 6v1a6 6 0 11-12 0V8a6 6 0 016-6z"/></svg>
               </span>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter district name" aria-invalid={!!error} aria-describedby={error ? 'district-create-error' : undefined} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 pl-10 pr-3 py-2 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm hover:border-gray-400" />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter depot name" aria-invalid={!!error} aria-describedby={error ? 'depot-create-error' : undefined} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 pl-10 pr-3 py-2 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm hover:border-gray-400" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Region *</label>
-            <select value={regionId} onChange={(e) => setRegionId(Number(e.target.value) || '')} className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-              <option value="">Select region</option>
-              {regions.map(r => (<option key={r.id} value={r.id}>{r.name}</option>))}
-            </select>
+            <label className="block text-sm font-medium text-gray-700">District *</label>
+            <SearchableSelect options={districts} value={districtId} onChange={setDistrictId} placeholder="Search district" />
           </div>
-          {error && <div id="district-create-error" className="text-xs text-red-600">{error}</div>}
+          {error && <div id="depot-create-error" className="text-xs text-red-600">{error}</div>}
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Cancel</button>
@@ -352,29 +404,26 @@ export function DistrictCreateModal({ open, onClose, onSubmit, name, setName, re
   );
 }
 
-export function DistrictEditModal({ open, onClose, onSubmit, name, setName, regionId, setRegionId, regions, saving, error }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; regionId: number | ''; setRegionId: (v: number | '') => void; regions: RegionOption[]; saving?: boolean; error?: string | null; }) {
+export function DepotEditModal({ open, onClose, onSubmit, name, setName, districtId, setDistrictId, districts, saving, error }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; districtId: number | ''; setDistrictId: (v: number | '') => void; districts: DistrictOption[]; saving?: boolean; error?: string | null; }) {
   return (
     <Modal isOpen={open} onClose={onClose} className="max-w-lg w-full p-6" backdropBlur={false}>
       <form onSubmit={onSubmit}>
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-black dark:text-white">Edit District</h3>
+          <h3 className="text-lg font-semibold text-black dark:text-white">Edit Depot</h3>
           <div>
             <label className="block text-sm font-medium text-gray-700">Name *</label>
             <div className="relative group">
               <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <svg className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 016 6v1a6 6 0 11-12 0V8a6 6 0 016-6z"/></svg>
               </span>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter district name" aria-invalid={!!error} aria-describedby={error ? 'district-edit-error' : undefined} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 pl-10 pr-3 py-2 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm hover:border-gray-400" />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter depot name" aria-invalid={!!error} aria-describedby={error ? 'depot-edit-error' : undefined} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 pl-10 pr-3 py-2 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm hover:border-gray-400" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Region *</label>
-            <select value={regionId} onChange={(e) => setRegionId(Number(e.target.value) || '')} className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-              <option value="">Select region</option>
-              {regions.map(r => (<option key={r.id} value={r.id}>{r.name}</option>))}
-            </select>
+            <label className="block text-sm font-medium text-gray-700">District *</label>
+            <SearchableSelect options={districts} value={districtId} onChange={setDistrictId} placeholder="Search district" />
           </div>
-          {error && <div id="district-edit-error" className="text-xs text-red-600">{error}</div>}
+          {error && <div id="depot-edit-error" className="text-xs text-red-600">{error}</div>}
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Cancel</button>
@@ -388,21 +437,21 @@ export function DistrictEditModal({ open, onClose, onSubmit, name, setName, regi
   );
 }
 
-export function DistrictViewModal({ open, onClose, district, regions }: { open: boolean; onClose: () => void; district: District | null; regions: RegionOption[]; }) {
-  const rName = district ? (regions.find(r => r.id === (district.region?.id ?? district.regionId))?.name ?? district.region?.name ?? '—') : '—';
+export function DepotViewModal({ open, onClose, depot, districts }: { open: boolean; onClose: () => void; depot: Depot | null; districts: DistrictOption[]; }) {
+  const distName = depot ? (districts.find(x => x.id === (depot.district?.id ?? depot.districtId))?.name ?? depot.district?.name ?? '—') : '—';
   return (
     <Modal isOpen={open} onClose={onClose} className="max-w-lg w-full p-6" backdropBlur={false}>
-      {district && (
+      {depot && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-black dark:text-white">District Details</h3>
+          <h3 className="text-lg font-semibold text-black dark:text-white">Depot Details</h3>
           <div className="grid grid-cols-1 gap-4">
             <div>
               <span className="text-xs uppercase text-gray-500">Name</span>
-              <div className="text-sm font-medium text-gray-900 dark:text-white">{district.name}</div>
+              <div className="text-sm font-medium text-gray-900 dark:text-white">{depot.name}</div>
             </div>
             <div>
-              <span className="text-xs uppercase text-gray-500">Region</span>
-              <div className="text-sm text-gray-700 dark:text-gray-300">{rName}</div>
+              <span className="text-xs uppercase text-gray-500">District</span>
+              <div className="text-sm text-gray-700 dark:text-gray-300">{distName}</div>
             </div>
           </div>
           <div className="flex justify-end">

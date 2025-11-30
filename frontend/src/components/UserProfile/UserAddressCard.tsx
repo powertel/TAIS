@@ -3,9 +3,20 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { useUserAccess } from "../../hooks/useUserAccess";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
+  const { userProfile } = useUserAccess();
+  const locationLabel = userProfile
+    ? (userProfile.is_national_level
+        ? "National Level"
+        : userProfile.is_region_level
+          ? (userProfile.region_name ? `Region: ${userProfile.region_name}` : "Region User")
+          : userProfile.is_depot_level
+            ? (userProfile.depot_name ? `Depot: ${userProfile.depot_name}` : "Depot User")
+            : "")
+    : "";
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");
@@ -26,7 +37,7 @@ export default function UserAddressCard() {
                   Country
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  United States.
+                  —
                 </p>
               </div>
 
@@ -35,7 +46,7 @@ export default function UserAddressCard() {
                   City/State
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  Phoenix, Arizona, United States.
+                  {locationLabel || "—"}
                 </p>
               </div>
 
@@ -44,7 +55,7 @@ export default function UserAddressCard() {
                   Postal Code
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  ERT 2489
+                  —
                 </p>
               </div>
 
@@ -53,7 +64,7 @@ export default function UserAddressCard() {
                   TAX ID
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  AS4568384
+                  —
                 </p>
               </div>
             </div>
@@ -97,22 +108,22 @@ export default function UserAddressCard() {
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
                   <Label>Country</Label>
-                  <Input type="text" value="United States" />
+                  <Input type="text" value="" />
                 </div>
 
                 <div>
                   <Label>City/State</Label>
-                  <Input type="text" value="Arizona, United States." />
+                  <Input type="text" value={locationLabel} />
                 </div>
 
                 <div>
                   <Label>Postal Code</Label>
-                  <Input type="text" value="ERT 2489" />
+                  <Input type="text" value="" />
                 </div>
 
                 <div>
                   <Label>TAX ID</Label>
-                  <Input type="text" value="AS4568384" />
+                  <Input type="text" value="" />
                 </div>
               </div>
             </div>

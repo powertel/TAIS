@@ -47,6 +47,7 @@ export default function SiteIndex() {
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
   const TRANSFORMER_PREFIX = (import.meta.env as any).VITE_TRANSFORMER_SERVICE_PREFIX || '/transformer-service';
+  const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/auth-service';
   const headers = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : undefined), [token]);
 
   const normalizeList = (payload: unknown): Transformer[] => {
@@ -83,16 +84,52 @@ export default function SiteIndex() {
     try {
       setDetailsLoading(true);
       setDetailsError(null);
-      const res = await axios.get(`${API_BASE_URL}/dashboard/transformer_detail/${selected.id}/`, { headers });
-      const raw = res.data as Record<string, unknown>;
-      const dataSensors = Array.isArray((raw as any).sensors) ? ((raw as any).sensors as Sensor[]) : [];
-      const rn = typeof raw.region_name === 'string' ? (raw.region_name as string) : '';
-      const dpn = typeof raw.depot_name === 'string' ? (raw.depot_name as string) : (selected.depot?.name ?? '');
-      const dtn = typeof (raw as any).district_name === 'string' ? ((raw as any).district_name as string) : '';
-      setRegionName(rn);
-      setDepotName(dpn);
-      setDistrictName(dtn);
-      setSensors(dataSensors);
+      const res = await axios.get(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/sensors/transformer/${selected.id}`, { headers });
+      const list = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+      const parsed: Sensor[] = (list as any[]).map((s: any) => {
+        const readings = Array.isArray(s.sensor_reading) ? s.sensor_reading : [];
+        const last = readings.length > 0 ? readings[readings.length - 1] : null;
+        let latest: Sensor['latest_reading'] = null;
+        if (last) {
+          const t = s.type;
+          const ts = last.updated_at || last.created_at;
+          let val: any;
+          if (t === 'temperature') val = last.temperature ?? last.value ?? last.temp;
+          else if (t === 'oil_level') val = last.oil_level ?? last.level ?? last.value;
+          else if (t === 'pressure') val = last.pressure ?? last.value;
+          else if (t === 'current') val = last.current ?? last.value;
+          else if (t === 'voltage') val = last.voltage ?? last.value;
+          else if (t === 'humidity') val = last.humidity ?? last.value;
+          else if (t === 'contact') val = last.contact ?? last.value;
+          else if (t === 'motion') val = last.motion ?? last.value;
+          else if (t === 'video') val = (last.active ?? last.value) ? 1 : 0;
+          else val = last.value;
+          latest = (typeof val === 'number' || typeof val === 'string') ? { value: Number(val), timestamp: new Date(ts || new Date()).toISOString(), is_alert: false } : null;
+        }
+        return {
+          id: s.id,
+          name: s.name ?? '',
+          sensor_id: String(s.id),
+          sensor_type: s.type ?? '',
+          description: '',
+          is_active: true,
+          latest_reading: latest,
+        };
+      });
+      setSensors(parsed);
+      if (selected.depotId) {
+        try {
+          const dep = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/depots/${selected.depotId}`, { headers });
+          const obj = dep.data as any;
+          const dn = obj?.district?.name ?? obj?.district_name ?? '';
+          const rn = obj?.district?.region?.name ?? obj?.region_name ?? '';
+          const dpn = obj?.name ?? selected.depot?.name ?? '';
+          if (dn) setDistrictName(dn);
+          if (rn) setRegionName(rn);
+          if (dpn) setDepotName(dpn);
+        } catch {
+        }
+      }
       setShowDetails(true);
     } catch {
       setDetailsError('Failed to load sensors');
@@ -107,7 +144,7 @@ export default function SiteIndex() {
     const fetchDistrictByDepot = async () => {
       if (!selected || !selected.depotId || districtName) return;
       try {
-        const res = await axios.get(`${API_BASE_URL}/api/v1/depots/${selected.depotId}`, { headers });
+        const res = await axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/depots/${selected.depotId}`, { headers });
         const obj = res.data as Record<string, unknown>;
         const dn = typeof (obj as any).district_name === 'string'
           ? ((obj as any).district_name as string)

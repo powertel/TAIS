@@ -12,6 +12,7 @@ interface Sensor {
   type: string;
   transformerId?: number;
   transformer?: { id: number; name: string };
+  sensor_reading?: Array<Record<string, any>>;
 }
 
 interface TransformerOption { id: number; name: string }
@@ -76,7 +77,17 @@ export default function SensorsIndex() {
         ? `${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/sensors/transformer/${transformerFilter}`
         : `${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/sensors`;
       const res = await axios.get(url, { headers });
-      setItems(normalizeList(res.data));
+      const list = normalizeList(res.data);
+      setItems(list.map((s: any) => ({
+        id: s.id,
+        deviceId: s.deviceId ?? s.deviceid ?? '',
+        devEui: s.devEui ?? s.devEui ?? '',
+        name: s.name ?? '',
+        type: s.type ?? '',
+        transformerId: s.transformerId ?? s.transformer_id,
+        transformer: s.transformer,
+        sensor_reading: Array.isArray(s.sensor_reading) ? s.sensor_reading : [],
+      })) as Sensor[]);
     } catch {
       setError('Failed to fetch sensors');
     } finally {
@@ -104,7 +115,7 @@ export default function SensorsIndex() {
 
   const openEdit = async (row: Sensor) => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/v1/sensors/${row.id}`, { headers });
+      const res = await axios.get(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/sensors/${row.id}`, { headers });
       const s = (res.data as Sensor) || row;
       setActive(s);
       setDeviceIdInput(s.deviceId);
@@ -126,7 +137,7 @@ export default function SensorsIndex() {
 
   const openView = async (row: Sensor) => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/v1/sensors/${row.id}`, { headers });
+      const res = await axios.get(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/sensors/${row.id}`, { headers });
       setActive(res.data as Sensor);
     } catch {
       setActive(row);
@@ -544,6 +555,56 @@ export function SensorViewModal({ open, onClose, sensor, transformers }: { open:
             <div className="text-sm font-medium text-gray-900">{tName}</div>
           </div>
         </div>
+        {sensor?.sensor_reading && sensor.sensor_reading.length > 0 && (
+          <div className="mt-4">
+            <div className="text-sm font-semibold text-black dark:text-white">Readings</div>
+            <div className="mt-2 max-h-64 overflow-auto border border-gray-200 rounded-md">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Time</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sensor.sensor_reading.map((r, idx) => {
+                    const ts = r.updated_at || r.created_at;
+                    const t = sensor?.type;
+                    let display: string | number | undefined = undefined;
+                    if (t === 'temperature') display = r.temperature ?? r.value ?? r.temp;
+                    else if (t === 'oil_level') display = r.oil_level ?? r.level ?? r.value;
+                    else if (t === 'pressure') display = r.pressure ?? r.value;
+                    else if (t === 'current') display = r.current ?? r.value;
+                    else if (t === 'voltage') display = r.voltage ?? r.value;
+                    else if (t === 'humidity') display = r.humidity ?? r.value;
+                    else if (t === 'contact') display = r.contact ?? r.value;
+                    else if (t === 'motion') display = r.motion ?? r.value;
+                    else if (t === 'video') display = r.active ?? r.value;
+                    else display = r.value;
+                    const unit = t === 'temperature' ? '°C'
+                      : t === 'oil_level' ? '%'
+                      : t === 'pressure' ? 'PSI'
+                      : t === 'current' ? 'A'
+                      : t === 'voltage' ? 'V'
+                      : t === 'humidity' ? '%'
+                      : t === 'contact' ? ''
+                      : t === 'motion' ? ''
+                      : t === 'video' ? ''
+                      : '';
+                    return (
+                      <tr key={idx} className="border-t">
+                        <td className="px-3 py-2 text-gray-700">{ts ? new Date(ts).toLocaleString() : '—'}</td>
+                        <td className="px-3 py-2 text-gray-900">
+                          {typeof display === 'boolean' ? (display ? 'ACTIVE' : 'INACTIVE') : String(display)} {unit}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
         <div className="mt-6 flex justify-end">
           <button onClick={onClose} className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Close</button>
         </div>

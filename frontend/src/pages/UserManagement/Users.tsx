@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axios from 'axios';
 import type { AxiosError } from 'axios';
+import Alert from '../../components/ui/alert/Alert';
+import { Modal } from '../../components/ui/modal';
 
 interface User {
   id: number;
@@ -15,16 +17,7 @@ interface User {
   depot?: string;
 }
 
-interface UserFormData {
-  firstname: string;
-  lastname: string;
-  email: string;
-  phone: string;
-  role: string;
-  region: string;
-  district: string;
-  depot: string;
-}
+ 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const ITEMS_PER_PAGE = 10;
@@ -36,23 +29,30 @@ export default function Users() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [showForm, setShowForm] = useState(false);
+  
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showView, setShowView] = useState(false);
+  const [active, setActive] = useState<User | null>(null);
+  const [firstnameInput, setFirstnameInput] = useState('');
+  const [lastnameInput, setLastnameInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
+  const [roleInput, setRoleInput] = useState('');
+  const [regionInput, setRegionInput] = useState('');
+  const [districtInput, setDistrictInput] = useState('');
+  const [depotInput, setDepotInput] = useState('');
+  const [savingCreate, setSavingCreate] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ variant: 'success' | 'error' | 'info' | 'warning'; title: string; message: string } | null>(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [passwordTarget, setPasswordTarget] = useState<User | null>(null);
 
-  const [formData, setFormData] = useState<UserFormData>({
-    firstname: '',
-    lastname: '',
-    email: '',
-    phone: '',
-    role: '',
-    region: '',
-    district: '',
-    depot: '',
-  });
+  
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -99,88 +99,110 @@ export default function Users() {
   );
 
   // Form handlers
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
-      const target = e.target as HTMLInputElement;
-      setFormData(prev => ({
-        ...prev,
-        [name]: target.checked ? 'true' : 'false'
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
+  
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
-    setFormData({
-      firstname: user.firstname ?? '',
-      lastname: user.lastname ?? '',
-      email: user.email,
-      phone: user.phone ?? '',
-      role: user.role ?? '',
-      region: user.region ?? '',
-      district: user.district ?? '',
-      depot: user.depot ?? '',
-    });
-    setShowForm(true);
+    setActive(user);
+    setFirstnameInput(user.firstname ?? '');
+    setLastnameInput(user.lastname ?? '');
+    setEmailInput(user.email ?? '');
+    setPhoneInput(user.phone ?? '');
+    setRoleInput(user.role ?? '');
+    setRegionInput(user.region ?? '');
+    setDistrictInput(user.district ?? '');
+    setDepotInput(user.depot ?? '');
+    setFormError(null);
+    setShowEdit(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const submitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      };
-      const userPayload = { ...formData };
-
-      if (editingUser) {
-        await axios.put(
-          `${API_BASE_URL}/api/v1/auth/update/id/${editingUser.id}`,
-          userPayload,
-          { headers }
-        );
-      } else {
-        await axios.post(
-          `${API_BASE_URL}/api/v1/auth/register`,
-          userPayload,
-          { headers }
-        );
-      }
-
-      // Refresh data and reset form
+      if (!firstnameInput.trim()) { setFormError('Enter first name'); return; }
+      if (!lastnameInput.trim()) { setFormError('Enter last name'); return; }
+      if (!emailInput.trim()) { setFormError('Enter email'); return; }
+      setSavingCreate(true);
+      setFormError(null);
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      await axios.post(`${API_BASE_URL}/api/v1/auth/register`, {
+        firstname: firstnameInput.trim(),
+        lastname: lastnameInput.trim(),
+        email: emailInput.trim(),
+        phone: phoneInput.trim(),
+        role: roleInput.trim(),
+        region: regionInput.trim(),
+        district: districtInput.trim(),
+        depot: depotInput.trim(),
+      }, { headers });
+      setShowCreate(false);
+      setFirstnameInput('');
+      setLastnameInput('');
+      setEmailInput('');
+      setPhoneInput('');
+      setRoleInput('');
+      setRegionInput('');
+      setDistrictInput('');
+      setDepotInput('');
       await fetchData();
-      resetForm();
-      setShowForm(false);
-    } catch (err) {
-      const error = err as AxiosError;
-      setError(error.message || 'Failed to save user');
-      console.error('Error saving user:', error);
+      setNotice({ variant: 'success', title: 'User created', message: 'The user was created successfully.' });
+      setTimeout(() => setNotice(null), 4000);
+    } catch {
+      setFormError('Failed to create user');
+      setNotice({ variant: 'error', title: 'Create failed', message: 'Could not create the user.' });
+      setTimeout(() => setNotice(null), 5000);
+    } finally {
+      setSavingCreate(false);
     }
   };
 
+  const submitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!active) return;
+      if (!firstnameInput.trim()) { setFormError('Enter first name'); return; }
+      if (!lastnameInput.trim()) { setFormError('Enter last name'); return; }
+      if (!emailInput.trim()) { setFormError('Enter email'); return; }
+      setSavingEdit(true);
+      setFormError(null);
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      await axios.put(`${API_BASE_URL}/api/v1/auth/update/id/${active.id}`, {
+        firstname: firstnameInput.trim(),
+        lastname: lastnameInput.trim(),
+        email: emailInput.trim(),
+        phone: phoneInput.trim(),
+        role: roleInput.trim(),
+        region: regionInput.trim(),
+        district: districtInput.trim(),
+        depot: depotInput.trim(),
+      }, { headers });
+      setShowEdit(false);
+      setActive(null);
+      setFirstnameInput('');
+      setLastnameInput('');
+      setEmailInput('');
+      setPhoneInput('');
+      setRoleInput('');
+      setRegionInput('');
+      setDistrictInput('');
+      setDepotInput('');
+      await fetchData();
+      setNotice({ variant: 'success', title: 'User updated', message: 'Changes were saved successfully.' });
+      setTimeout(() => setNotice(null), 4000);
+    } catch {
+      setFormError('Failed to update user');
+      setNotice({ variant: 'error', title: 'Update failed', message: 'Could not update the user.' });
+      setTimeout(() => setNotice(null), 5000);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  
+
   // Delete action removed: no delete endpoint provided
 
-  const resetForm = () => {
-    setFormData({
-      firstname: '',
-      lastname: '',
-      email: '',
-      phone: '',
-      role: '',
-      region: '',
-      district: '',
-      depot: '',
-    });
-    setEditingUser(null);
-  };
+  
 
   const openChangePassword = (user: User) => {
     setPasswordTarget(user);
@@ -223,6 +245,9 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
+      {notice && (
+        <Alert variant={notice.variant} title={notice.title} message={notice.message} />
+      )}
       {/* Header and search */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
@@ -244,15 +269,19 @@ export default function Users() {
             className="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           />
           
-          <button
-            onClick={() => {
-              resetForm();
-              setShowForm(true);
-            }}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Add User
-          </button>
+          <button onClick={() => {
+            setFirstnameInput('');
+            setLastnameInput('');
+            setEmailInput('');
+            setPhoneInput('');
+            setRoleInput('');
+            setRegionInput('');
+            setDistrictInput('');
+            setDepotInput('');
+            setActive(null);
+            setFormError(null);
+            setShowCreate(true);
+          }} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Add User</button>
         </div>
       </div>
 
@@ -294,6 +323,7 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role ?? '—'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone ?? '—'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button onClick={() => { setActive(user); setShowView(true); }} className="text-gray-700 hover:text-gray-900 mr-4">View</button>
                       <button onClick={() => handleEditUser(user)} className="text-blue-600 hover:text-blue-900 mr-4">Edit</button>
                       <button onClick={() => openChangePassword(user)} className="text-gray-700 hover:text-gray-900">Change Password</button>
                     </td>
@@ -401,16 +431,15 @@ export default function Users() {
         )}
       </div>
 
-      {/* Add/Edit User Modal */}
-      {showForm && (
+      {false && (
         <div className="fixed inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowForm(false)}></div>
+            <div className="fixed inset-0 bg-black/60 transition-opacity" aria-hidden="true" onClick={() => { setShowCreate(false); setShowEdit(false); }}></div>
 
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={editingUser ? submitEdit : submitCreate}>
                 <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                   <div className="sm:flex sm:items-start">
                     <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
@@ -421,9 +450,12 @@ export default function Users() {
                         <div className="sm:col-span-3">
                           <label htmlFor="firstname" className="block text-sm font-medium text-gray-700">First Name *</label>
                           <div className="mt-1">
-                            <input type="text" name="firstname" id="firstname" required value={formData.firstname} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            <input type="text" name="firstname" id="firstname" required value={firstnameInput} onChange={(e) => setFirstnameInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
+                        {formError && (
+                          <div className="sm:col-span-6 text-xs text-red-600">{formError}</div>
+                        )}
 
                         {/* Email */}
                         <div className="sm:col-span-3">
@@ -431,29 +463,21 @@ export default function Users() {
                             Email *
                           </label>
                           <div className="mt-1">
-                            <input
-                              type="email"
-                              name="email"
-                              id="email"
-                              required
-                              value={formData.email}
-                              onChange={handleFormChange}
-                              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                            />
+                            <input type="email" name="email" id="email" required value={emailInput} onChange={(e) => setEmailInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
 
                         <div className="sm:col-span-3">
                           <label htmlFor="lastname" className="block text-sm font-medium text-gray-700">Last Name *</label>
                           <div className="mt-1">
-                            <input type="text" name="lastname" id="lastname" required value={formData.lastname} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            <input type="text" name="lastname" id="lastname" required value={lastnameInput} onChange={(e) => setLastnameInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
 
                         <div className="sm:col-span-3">
                           <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
                           <div className="mt-1">
-                            <input type="text" name="phone" id="phone" value={formData.phone} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            <input type="text" name="phone" id="phone" value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
 
@@ -467,7 +491,7 @@ export default function Users() {
                         <div className="sm:col-span-3">
                           <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
                           <div className="mt-1">
-                            <select name="role" id="role" value={formData.role} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                            <select name="role" id="role" value={roleInput} onChange={(e) => setRoleInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
                               <option value="">Select role</option>
                               <option value="ADMIN">ADMIN</option>
                               <option value="USER">USER</option>
@@ -477,19 +501,19 @@ export default function Users() {
                         <div className="sm:col-span-3">
                           <label htmlFor="region" className="block text-sm font-medium text-gray-700">Region</label>
                           <div className="mt-1">
-                            <input type="text" name="region" id="region" value={formData.region} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            <input type="text" name="region" id="region" value={regionInput} onChange={(e) => setRegionInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
                         <div className="sm:col-span-3">
                           <label htmlFor="district" className="block text-sm font-medium text-gray-700">District</label>
                           <div className="mt-1">
-                            <input type="text" name="district" id="district" value={formData.district} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            <input type="text" name="district" id="district" value={districtInput} onChange={(e) => setDistrictInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
                         <div className="sm:col-span-3">
                           <label htmlFor="depot" className="block text-sm font-medium text-gray-700">Depot</label>
                           <div className="mt-1">
-                            <input type="text" name="depot" id="depot" value={formData.depot} onChange={handleFormChange} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
+                            <input type="text" name="depot" id="depot" value={depotInput} onChange={(e) => setDepotInput(e.target.value)} className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" />
                           </div>
                         </div>
                       </div>
@@ -497,15 +521,10 @@ export default function Users() {
                   </div>
                 </div>
                 <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="submit"
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  >
-                    {editingUser ? 'Update' : 'Create'}
-                  </button>
+                  <button type="submit" disabled={editingUser ? savingEdit : savingCreate} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">{editingUser ? 'Update' : 'Create'}</button>
                   <button
                     type="button"
-                    onClick={() => setShowForm(false)}
+                    onClick={() => { setShowCreate(false); setShowEdit(false); }}
                     className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                   >
                     Cancel
@@ -516,11 +535,63 @@ export default function Users() {
           </div>
         </div>
       )}
+      <Modal isOpen={showCreate || showEdit} onClose={() => { setShowCreate(false); setShowEdit(false); }} className="max-w-3xl w-full p-6" overlayClassName="bg-black/60" backdropBlur={false}>
+        <form onSubmit={editingUser ? submitEdit : submitCreate}>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-black dark:text-white">{editingUser ? 'Edit User' : 'Create New User'}</h3>
+            <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+              <div className="sm:col-span-3">
+                <label htmlFor="firstname" className="block text-sm font-medium text-gray-700">First Name *</label>
+                <input type="text" name="firstname" id="firstname" placeholder="Enter first name" required value={firstnameInput} onChange={(e) => setFirstnameInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+              </div>
+              <div className="sm:col-span-3">
+                <label htmlFor="lastname" className="block text-sm font-medium text-gray-700">Last Name *</label>
+                <input type="text" name="lastname" id="lastname" placeholder="Enter last name" required value={lastnameInput} onChange={(e) => setLastnameInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+              </div>
+              <div className="sm:col-span-3">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email *</label>
+                <input type="email" name="email" id="email" placeholder="Enter email" required value={emailInput} onChange={(e) => setEmailInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+              </div>
+              <div className="sm:col-span-3">
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
+                <input type="text" name="phone" id="phone" placeholder="Enter phone" value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+              </div>
+              <div className="sm:col-span-3">
+                <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
+                <select name="role" id="role" value={roleInput} onChange={(e) => setRoleInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm">
+                  <option value="">Select role</option>
+                  <option value="ADMIN">ADMIN</option>
+                  <option value="USER">USER</option>
+                </select>
+              </div>
+              <div className="sm:col-span-3">
+                <label htmlFor="region" className="block text-sm font-medium text-gray-700">Region</label>
+                <input type="text" name="region" id="region" placeholder="Enter region" value={regionInput} onChange={(e) => setRegionInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+              </div>
+              <div className="sm:col-span-3">
+                <label htmlFor="district" className="block text-sm font-medium text-gray-700">District</label>
+                <input type="text" name="district" id="district" placeholder="Enter district" value={districtInput} onChange={(e) => setDistrictInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+              </div>
+              <div className="sm:col-span-3">
+                <label htmlFor="depot" className="block text-sm font-medium text-gray-700">Depot</label>
+                <input type="text" name="depot" id="depot" placeholder="Enter depot" value={depotInput} onChange={(e) => setDepotInput(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+              </div>
+              {formError && (
+                <div className="sm:col-span-6 text-xs text-red-600">{formError}</div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => { setShowCreate(false); setShowEdit(false); }} className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Cancel</button>
+              <button type="submit" disabled={editingUser ? savingEdit : savingCreate} className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">{editingUser ? 'Update' : 'Create'}</button>
+            </div>
+          </div>
+        </form>
+      </Modal>
 
-      {showChangePassword && passwordTarget && (
+      {false && (
         <div className="fixed inset-0 overflow-y-auto" role="dialog" aria-modal="true">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowChangePassword(false)}></div>
+            <div className="fixed inset-0 bg-black/60 transition-opacity" aria-hidden="true" onClick={() => setShowChangePassword(false)}></div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
               <form onSubmit={submitChangePassword}>
@@ -550,6 +621,95 @@ export default function Users() {
           </div>
         </div>
       )}
+      <Modal isOpen={showChangePassword && !!passwordTarget} onClose={() => setShowChangePassword(false)} className="max-w-md w-full p-6" overlayClassName="bg-black/60" backdropBlur={false}>
+        <form onSubmit={submitChangePassword}>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-black dark:text-white">Change Password</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Current Password</label>
+                <input type="password" placeholder="Enter current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">New Password</label>
+                <input type="password" placeholder="Enter new password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setShowChangePassword(false)} className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Cancel</button>
+              <button type="submit" className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Update Password</button>
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {false && (
+        <div className="fixed inset-0 overflow-y-auto" role="dialog" aria-modal="true">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-black/60 transition-opacity" aria-hidden="true" onClick={() => setShowView(false)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">User Details</h3>
+                    <div className="mt-5 space-y-3 text-sm text-gray-700">
+                      <div><span className="font-medium">Name:</span> {(active.firstname ?? '')} {(active.lastname ?? '')}</div>
+                      <div><span className="font-medium">Email:</span> {active.email}</div>
+                      <div><span className="font-medium">Phone:</span> {active.phone ?? '—'}</div>
+                      <div><span className="font-medium">Role:</span> {active.role ?? '—'}</div>
+                      <div><span className="font-medium">Region:</span> {active.region ?? '—'}</div>
+                      <div><span className="font-medium">District:</span> {active.district ?? '—'}</div>
+                      <div><span className="font-medium">Depot:</span> {active.depot ?? '—'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onClick={() => setShowView(false)} className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <Modal isOpen={showView && !!active} onClose={() => setShowView(false)} className="max-w-md w-full p-6" overlayClassName="bg-black/60" backdropBlur={false}>
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-black dark:text-white">User Details</h3>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <div className="text-xs text-gray-500">Name</div>
+              <div className="text-sm font-medium text-gray-900">{(active?.firstname ?? '')} {(active?.lastname ?? '')}</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Email</div>
+              <div className="text-sm font-medium text-gray-900">{active?.email ?? '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Phone</div>
+              <div className="text-sm font-medium text-gray-900">{active?.phone ?? '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Role</div>
+              <div className="text-sm font-medium text-gray-900">{active?.role ?? '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Region</div>
+              <div className="text-sm font-medium text-gray-900">{active?.region ?? '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">District</div>
+              <div className="text-sm font-medium text-gray-900">{active?.district ?? '—'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500">Depot</div>
+              <div className="text-sm font-medium text-gray-900">{active?.depot ?? '—'}</div>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button type="button" onClick={() => setShowView(false)} className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Close</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

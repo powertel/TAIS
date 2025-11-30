@@ -15,6 +15,7 @@ import {
   Users,
   ChevronDown,
   MoreHorizontal,
+  Building,
 } from 'lucide-react';
 
 interface NavItem {
@@ -44,6 +45,11 @@ const navItems: NavItem[] = [
     icon: <Warehouse className="w-5 h-5" />,
     name: "Depots",
     path: "/depots",
+  },
+  {
+    icon: <Building className="w-5 h-5" />,
+    name: "Sites",
+    path: "/sites",
   },
   {
     icon: <Zap className="w-5 h-5" />,

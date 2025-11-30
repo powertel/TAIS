@@ -15,7 +15,7 @@ interface Sensor {
 }
 
 interface TransformerOption { id: number; name: string }
-const SENSOR_TYPES = ['temperature', 'contact', 'tilt', 'motion', 'video', 'controller'] as const;
+const SENSOR_TYPES = ['temperature', 'contact', 'suspicious_tilt', 'motion', 'video', 'controller'] as const;
 
 export default function SensorsIndex() {
   const { token } = useAuth();

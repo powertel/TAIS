@@ -11,6 +11,8 @@ interface Transformer {
   isActive?: boolean;
   depotId?: number;
   depot?: { id: number; name: string };
+  lat?: number;
+  lng?: number;
 }
 
 interface DepotOption { id: number; name: string }
@@ -34,6 +36,8 @@ export default function TransformersIndex() {
   const [capacityInput, setCapacityInput] = useState<number | ''>('');
   const [isActiveInput, setIsActiveInput] = useState<boolean>(true);
   const [depotInput, setDepotInput] = useState<number | ''>('');
+  const [latInput, setLatInput] = useState<number | ''>('');
+  const [lngInput, setLngInput] = useState<number | ''>('');
   const [savingCreate, setSavingCreate] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -92,6 +96,8 @@ export default function TransformersIndex() {
     setCapacityInput('');
     setIsActiveInput(true);
     setDepotInput('');
+    setLatInput('');
+    setLngInput('');
     setActive(null);
     setFormError(null);
     setShowCreate(true);
@@ -106,12 +112,16 @@ export default function TransformersIndex() {
       setCapacityInput(typeof t.capacity === 'number' ? t.capacity : '');
       setIsActiveInput(t.isActive ?? true);
       setDepotInput(t.depot?.id ?? t.depotId ?? '');
+      setLatInput(typeof t.lat === 'number' ? t.lat : '');
+      setLngInput(typeof t.lng === 'number' ? t.lng : '');
     } catch {
       setActive(row);
       setNameInput(row.name);
       setCapacityInput(typeof row.capacity === 'number' ? row.capacity : '');
       setIsActiveInput(row.isActive ?? true);
       setDepotInput(row.depot?.id ?? row.depotId ?? '');
+      setLatInput(typeof row.lat === 'number' ? row.lat : '');
+      setLngInput(typeof row.lng === 'number' ? row.lng : '');
     }
     setFormError(null);
     setShowEdit(true);
@@ -133,14 +143,18 @@ export default function TransformersIndex() {
       if (!nameInput || nameInput.trim().length < 2) { setFormError('Enter a valid name'); return; }
       if (capacityInput === '' || typeof capacityInput !== 'number' || capacityInput <= 0) { setFormError('Enter capacity'); return; }
       if (!depotInput || typeof depotInput !== 'number') { setFormError('Select a depot'); return; }
+      if (latInput === '' || typeof latInput !== 'number') { setFormError('Enter latitude'); return; }
+      if (lngInput === '' || typeof lngInput !== 'number') { setFormError('Enter longitude'); return; }
       setSavingCreate(true);
       setFormError(null);
-      await axios.post(`${API_BASE_URL}/api/v1/transformers/create`, { name: nameInput.trim(), capacity: capacityInput, isActive: isActiveInput, depotId: depotInput }, { headers });
+      await axios.post(`${API_BASE_URL}/api/v1/transformers/create`, { name: nameInput.trim(), capacity: capacityInput, isActive: isActiveInput, depotId: depotInput, lat: latInput, lng: lngInput }, { headers });
       setShowCreate(false);
       setNameInput('');
       setCapacityInput('');
       setIsActiveInput(true);
       setDepotInput('');
+      setLatInput('');
+      setLngInput('');
       await fetchTransformers();
       setNotice({ variant: 'success', title: 'Transformer created', message: 'The transformer was created successfully.' });
       setTimeout(() => setNotice(null), 4000);
@@ -160,15 +174,19 @@ export default function TransformersIndex() {
       if (!nameInput || nameInput.trim().length < 2) { setFormError('Enter a valid name'); return; }
       if (capacityInput === '' || typeof capacityInput !== 'number' || capacityInput <= 0) { setFormError('Enter capacity'); return; }
       if (!depotInput || typeof depotInput !== 'number') { setFormError('Select a depot'); return; }
+      if (latInput === '' || typeof latInput !== 'number') { setFormError('Enter latitude'); return; }
+      if (lngInput === '' || typeof lngInput !== 'number') { setFormError('Enter longitude'); return; }
       setSavingEdit(true);
       setFormError(null);
-      await axios.put(`${API_BASE_URL}/api/v1/transformers/${active.id}`, { name: nameInput.trim(), capacity: capacityInput, isActive: isActiveInput, depotId: depotInput }, { headers });
+      await axios.put(`${API_BASE_URL}/api/v1/transformers/${active.id}`, { name: nameInput.trim(), capacity: capacityInput, isActive: isActiveInput, depotId: depotInput, lat: latInput, lng: lngInput }, { headers });
       setShowEdit(false);
       setActive(null);
       setNameInput('');
       setCapacityInput('');
       setIsActiveInput(true);
       setDepotInput('');
+      setLatInput('');
+      setLngInput('');
       await fetchTransformers();
       setNotice({ variant: 'success', title: 'Transformer updated', message: 'Changes were saved successfully.' });
       setTimeout(() => setNotice(null), 4000);
@@ -333,6 +351,10 @@ export default function TransformersIndex() {
         setIsActive={setIsActiveInput}
         depotId={depotInput}
         setDepotId={setDepotInput}
+        lat={latInput}
+        setLat={setLatInput}
+        lng={lngInput}
+        setLng={setLngInput}
         depots={depots}
         saving={savingCreate}
         error={formError}
@@ -349,6 +371,10 @@ export default function TransformersIndex() {
         setIsActive={setIsActiveInput}
         depotId={depotInput}
         setDepotId={setDepotInput}
+        lat={latInput}
+        setLat={setLatInput}
+        lng={lngInput}
+        setLng={setLngInput}
         depots={depots}
         saving={savingEdit}
         error={formError}
@@ -412,7 +438,7 @@ function SearchableSelect({ options, value, onChange, placeholder }: { options: 
   );
 }
 
-export function TransformerCreateModal({ open, onClose, onSubmit, name, setName, capacity, setCapacity, isActive, setIsActive, depotId, setDepotId, depots, saving, error }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; capacity: number | ''; setCapacity: (v: number | '') => void; isActive: boolean; setIsActive: (v: boolean) => void; depotId: number | ''; setDepotId: (v: number | '') => void; depots: DepotOption[]; saving?: boolean; error?: string | null; }) {
+export function TransformerCreateModal({ open, onClose, onSubmit, name, setName, capacity, setCapacity, isActive, setIsActive, depotId, setDepotId, lat, setLat, lng, setLng, depots, saving, error }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; capacity: number | ''; setCapacity: (v: number | '') => void; isActive: boolean; setIsActive: (v: boolean) => void; depotId: number | ''; setDepotId: (v: number | '') => void; lat: number | ''; setLat: (v: number | '') => void; lng: number | ''; setLng: (v: number | '') => void; depots: DepotOption[]; saving?: boolean; error?: string | null; }) {
   return (
     <Modal isOpen={open} onClose={onClose} className="max-w-lg w-full p-6" backdropBlur={false}>
       <form onSubmit={onSubmit}>
@@ -439,6 +465,16 @@ export function TransformerCreateModal({ open, onClose, onSubmit, name, setName,
             <label className="block text-sm font-medium text-gray-700">Depot *</label>
             <SearchableSelect options={depots} value={depotId} onChange={setDepotId} placeholder="Search depot" />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Latitude *</label>
+              <input type="number" step="any" value={lat === '' ? '' : String(lat)} onChange={(e) => setLat(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Enter latitude" className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Longitude *</label>
+              <input type="number" step="any" value={lng === '' ? '' : String(lng)} onChange={(e) => setLng(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Enter longitude" className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+            </div>
+          </div>
           {error && <div id="transformer-create-error" className="text-xs text-red-600">{error}</div>}
         </div>
         <div className="mt-6 flex justify-end gap-2">
@@ -455,7 +491,7 @@ export function TransformerCreateModal({ open, onClose, onSubmit, name, setName,
   );
 }
 
-export function TransformerEditModal({ open, onClose, onSubmit, name, setName, capacity, setCapacity, isActive, setIsActive, depotId, setDepotId, depots, saving, error }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; capacity: number | ''; setCapacity: (v: number | '') => void; isActive: boolean; setIsActive: (v: boolean) => void; depotId: number | ''; setDepotId: (v: number | '') => void; depots: DepotOption[]; saving?: boolean; error?: string | null; }) {
+export function TransformerEditModal({ open, onClose, onSubmit, name, setName, capacity, setCapacity, isActive, setIsActive, depotId, setDepotId, lat, setLat, lng, setLng, depots, saving, error }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; capacity: number | ''; setCapacity: (v: number | '') => void; isActive: boolean; setIsActive: (v: boolean) => void; depotId: number | ''; setDepotId: (v: number | '') => void; lat: number | ''; setLat: (v: number | '') => void; lng: number | ''; setLng: (v: number | '') => void; depots: DepotOption[]; saving?: boolean; error?: string | null; }) {
   return (
     <Modal isOpen={open} onClose={onClose} className="max-w-lg w-full p-6" backdropBlur={false}>
       <form onSubmit={onSubmit}>
@@ -476,6 +512,16 @@ export function TransformerEditModal({ open, onClose, onSubmit, name, setName, c
           <div>
             <label className="block text-sm font-medium text-gray-700">Depot *</label>
             <SearchableSelect options={depots} value={depotId} onChange={setDepotId} placeholder="Search depot" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Latitude *</label>
+              <input type="number" step="any" value={lat === '' ? '' : String(lat)} onChange={(e) => setLat(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Enter latitude" className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Longitude *</label>
+              <input type="number" step="any" value={lng === '' ? '' : String(lng)} onChange={(e) => setLng(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Enter longitude" className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm" />
+            </div>
           </div>
           {error && <div className="text-xs text-red-600">{error}</div>}
         </div>
@@ -510,6 +556,14 @@ export function TransformerViewModal({ open, onClose, transformer, depots }: { o
           <div>
             <div className="text-xs text-gray-500">Status</div>
             <div className="text-sm font-medium text-gray-900">{transformer?.isActive ? 'Active' : 'Inactive'}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">Latitude</div>
+            <div className="text-sm font-medium text-gray-900">{typeof transformer?.lat === 'number' ? transformer?.lat : '—'}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">Longitude</div>
+            <div className="text-sm font-medium text-gray-900">{typeof transformer?.lng === 'number' ? transformer?.lng : '—'}</div>
           </div>
         </div>
         <div className="mt-6 flex justify-end">

@@ -23,6 +23,9 @@ export default function RegionsIndex() {
   const [showView, setShowView] = useState(false);
   const [activeRegion, setActiveRegion] = useState<Region | null>(null);
   const [nameInput, setNameInput] = useState('');
+  const [savingCreate, setSavingCreate] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
   const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/auth-service';
@@ -59,6 +62,7 @@ export default function RegionsIndex() {
   const openCreate = () => {
     setNameInput('');
     setActiveRegion(null);
+    setFormError(null);
     setShowCreate(true);
   };
 
@@ -72,6 +76,7 @@ export default function RegionsIndex() {
       setActiveRegion(region);
       setNameInput(region.name);
     }
+    setFormError(null);
     setShowEdit(true);
   };
 
@@ -88,12 +93,17 @@ export default function RegionsIndex() {
   const submitCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/regions/create`, { name: nameInput }, { headers });
+      if (!nameInput || nameInput.trim().length < 2) { setFormError('Enter a valid name'); return; }
+      setSavingCreate(true);
+      setFormError(null);
+      await axios.post(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/regions/create`, { name: nameInput.trim() }, { headers });
       setShowCreate(false);
       setNameInput('');
       await fetchRegions();
     } catch {
-      setError('Failed to create region');
+      setFormError('Failed to create region');
+    } finally {
+      setSavingCreate(false);
     }
   };
 
@@ -101,13 +111,18 @@ export default function RegionsIndex() {
     e.preventDefault();
     try {
       if (!activeRegion) return;
-      await axios.put(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/regions/${activeRegion.id}`, { name: nameInput }, { headers });
+      if (!nameInput || nameInput.trim().length < 2) { setFormError('Enter a valid name'); return; }
+      setSavingEdit(true);
+      setFormError(null);
+      await axios.put(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/regions/${activeRegion.id}`, { name: nameInput.trim() }, { headers });
       setShowEdit(false);
       setActiveRegion(null);
       setNameInput('');
       await fetchRegions();
     } catch {
-      setError('Failed to update region');
+      setFormError('Failed to update region');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -217,8 +232,8 @@ export default function RegionsIndex() {
           )}
         </div>
       )}
-      <RegionsCreateModal open={showCreate} onClose={() => setShowCreate(false)} onSubmit={submitCreate} name={nameInput} setName={setNameInput} />
-      <RegionsEditModal open={showEdit} onClose={() => setShowEdit(false)} onSubmit={submitEdit} name={nameInput} setName={setNameInput} />
+      <RegionsCreateModal open={showCreate} onClose={() => setShowCreate(false)} onSubmit={submitCreate} name={nameInput} setName={setNameInput} saving={savingCreate} error={formError} />
+      <RegionsEditModal open={showEdit} onClose={() => setShowEdit(false)} onSubmit={submitEdit} name={nameInput} setName={setNameInput} saving={savingEdit} error={formError} />
       <RegionsViewModal open={showView} onClose={() => setShowView(false)} region={activeRegion} />
     </div>
   );
@@ -227,7 +242,7 @@ export default function RegionsIndex() {
 export function RegionsModals() { return null }
 
 // Create Modal
-export function RegionsCreateModal({ open, onClose, onSubmit, name, setName }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; }) {
+export function RegionsCreateModal({ open, onClose, onSubmit, name, setName, saving, error }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; saving?: boolean; error?: string | null; }) {
   return (
     <Modal isOpen={open} onClose={onClose} className="max-w-lg w-full p-6" backdropBlur={false}>
       <form onSubmit={onSubmit}>
@@ -235,12 +250,30 @@ export function RegionsCreateModal({ open, onClose, onSubmit, name, setName }: {
           <h3 className="text-lg font-semibold text-black dark:text-white">Create Region</h3>
           <div>
             <label className="block text-sm font-medium text-gray-700">Name *</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+            <div className="relative group">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <svg className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 016 6v1a6 6 0 11-12 0V8a6 6 0 016-6z"/></svg>
+              </span>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter region name"
+                aria-invalid={!!error}
+                aria-describedby={error ? 'create-error' : undefined}
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 pl-10 pr-3 py-2 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm hover:border-gray-400"
+              />
+            </div>
+            {!error && <p className="mt-1 text-xs text-gray-500">At least 2 characters</p>}
           </div>
+          {error && <div id="create-error" className="text-xs text-red-600">{error}</div>}
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Cancel</button>
-          <button type="submit" className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Create</button>
+          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
+            {saving && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>}
+            Create
+          </button>
         </div>
       </form>
     </Modal>
@@ -248,7 +281,7 @@ export function RegionsCreateModal({ open, onClose, onSubmit, name, setName }: {
 }
 
 // Edit Modal
-export function RegionsEditModal({ open, onClose, onSubmit, name, setName }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; }) {
+export function RegionsEditModal({ open, onClose, onSubmit, name, setName, saving, error }: { open: boolean; onClose: () => void; onSubmit: (e: React.FormEvent) => void; name: string; setName: (v: string) => void; saving?: boolean; error?: string | null; }) {
   return (
     <Modal isOpen={open} onClose={onClose} className="max-w-lg w-full p-6" backdropBlur={false}>
       <form onSubmit={onSubmit}>
@@ -256,12 +289,30 @@ export function RegionsEditModal({ open, onClose, onSubmit, name, setName }: { o
           <h3 className="text-lg font-semibold text-black dark:text-white">Edit Region</h3>
           <div>
             <label className="block text-sm font-medium text-gray-700">Name *</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" />
+            <div className="relative group">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <svg className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a6 6 0 016 6v1a6 6 0 11-12 0  V8a6 6 0 016-6z"/></svg>
+              </span>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter region name"
+                aria-invalid={!!error}
+                aria-describedby={error ? 'edit-error' : undefined}
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 pl-10 pr-3 py-2 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500 sm:text-sm hover:border-gray-400"
+              />
+            </div>
+            {!error && <p className="mt-1 text-xs text-gray-500">At least 2 characters</p>}
           </div>
+          {error && <div id="edit-error" className="text-xs text-red-600">{error}</div>}
         </div>
         <div className="mt-6 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Cancel</button>
-          <button type="submit" className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Update</button>
+          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60">
+            {saving && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>}
+            Update
+          </button>
         </div>
       </form>
     </Modal>

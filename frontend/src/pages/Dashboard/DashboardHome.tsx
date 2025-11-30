@@ -3,7 +3,6 @@ import { ChevronDown, MapPinned, Warehouse, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useUserAccess } from '../../hooks/useUserAccess';
 import axios from 'axios';
-import HierarchyVisualization from './HierarchyVisualization';
 import { useRealtimeUpdates } from '../../services/realtimeService';
 
 interface DashboardStats {

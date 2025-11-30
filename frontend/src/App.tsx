@@ -24,7 +24,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import ItemList from "./components/ItemList";
 import DashboardHome from "./pages/Dashboard/DashboardHome";
 import TransformerDetail from "./pages/Dashboard/TransformerDetail";
-import RegionsPage from "./pages/Dashboard/RegionsPage";
+import RegionsIndex from "./pages/Regions";
 import DepotsTablePage from "./pages/Dashboard/DepotsTablePage";
 import TransformersPage from "./pages/Dashboard/TransformersPage";
 
@@ -55,7 +55,7 @@ const AppRoutes = () => {
         <Route path="videos" element={<Videos />} />
         <Route path="line-chart" element={<LineChart />} />
         <Route path="bar-chart" element={<BarChart />} />
-        <Route path="regions" element={<RegionsPage />} />
+        <Route path="regions" element={<RegionsIndex />} />
         <Route path="depots" element={<DepotsTablePage />} />
         <Route path="transformers" element={<TransformersPage />} />
         <Route path="transformer/:id" element={<TransformerDetail />} />

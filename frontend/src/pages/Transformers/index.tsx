@@ -265,7 +265,7 @@ export default function TransformersIndex() {
                   <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-600">
                     No transformers found.
                     <div className="mt-4 flex items-center justify-center gap-2">
-                      <button onClick={fetchTransformers} className="rounded bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Refresh</button>
+                      {/* <button onClick={fetchTransformers} className="rounded bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Refresh</button> */}
                       <button onClick={openCreate} className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90">Add Transformer</button>
                     </div>
                   </td>

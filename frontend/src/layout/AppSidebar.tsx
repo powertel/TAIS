@@ -8,6 +8,7 @@ import {
   MapPinned,
   Warehouse,
   Zap,
+  Activity,
   User,
   Calendar,
   FileText,
@@ -50,14 +51,9 @@ const navItems: NavItem[] = [
     path: "/transformers",
   },
   {
-    icon: <User className="w-5 h-5" />,
-    name: "Profile",
-    path: "/profile",
-  },
-  {
-    icon: <Calendar className="w-5 h-5" />,
-    name: "Calendar",
-    path: "/calendar",
+    icon: <Activity className="w-5 h-5" />,
+    name: "Sensors",
+    path: "/sensors",
   },
   {
     icon: <Users className="w-5 h-5" />,
@@ -67,12 +63,9 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <FileText className="w-5 h-5" />,
-    name: "Pages",
-    subItems: [
-      { name: "Blank", path: "/blank" },
-      { name: "404 Error", path: "/error-404" },
-    ],
+    icon: <User className="w-5 h-5" />,
+    name: "Profile",
+    path: "/profile",
   },
 ];
 

@@ -15,6 +15,7 @@ import RegionsIndex from "./pages/Regions";
 import DistrictsIndex from "./pages/Districts";
 import DepotsIndex from "./pages/Depots";
 import TransformersIndex from "./pages/Transformers";
+import SensorsIndex from "./pages/Sensors";
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
@@ -37,6 +38,7 @@ const AppRoutes = () => {
         <Route path="districts" element={<DistrictsIndex />} />
         <Route path="depots" element={<DepotsIndex />} />
         <Route path="transformers" element={<TransformersIndex />} />
+        <Route path="sensors" element={<SensorsIndex />} />
         <Route path="transformer/:id" element={<TransformerDetail />} />
         <Route
           path="users"

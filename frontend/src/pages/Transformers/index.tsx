@@ -44,7 +44,8 @@ export default function TransformersIndex() {
   const [notice, setNotice] = useState<{ variant: 'success' | 'error' | 'info' | 'warning'; title: string; message: string } | null>(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-  const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/transformer-service';
+  const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/auth-service';
+  const TRANSFORMER_PREFIX = (import.meta.env as any).VITE_TRANSFORMER_SERVICE_PREFIX || '/transformer-service';
   const headers = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : undefined), [token]);
 
   const normalizeList = (payload: unknown): Transformer[] => {
@@ -73,8 +74,8 @@ export default function TransformersIndex() {
       setLoading(true);
       setError(null);
       const url = typeof depotFilter === 'number'
-        ? `${API_BASE_URL}/api/v1/transformers/depot/${depotFilter}`
-        : `${API_BASE_URL}/api/v1/transformers`;
+        ? `${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/transformers/depot/${depotFilter}`
+        : `${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/transformers`;
       const res = await axios.get(url, { headers });
       setItems(normalizeList(res.data));
     } catch {
@@ -105,7 +106,7 @@ export default function TransformersIndex() {
 
   const openEdit = async (row: Transformer) => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/v1/transformers/${row.id}`, { headers });
+      const res = await axios.get(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/transformers/${row.id}`, { headers });
       const t = (res.data as Transformer) || row;
       setActive(t);
       setNameInput(t.name);
@@ -129,7 +130,7 @@ export default function TransformersIndex() {
 
   const openView = async (row: Transformer) => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/v1/transformers/${row.id}`, { headers });
+      const res = await axios.get(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/transformers/${row.id}`, { headers });
       setActive(res.data as Transformer);
     } catch {
       setActive(row);
@@ -147,7 +148,7 @@ export default function TransformersIndex() {
       if (lngInput === '' || typeof lngInput !== 'number') { setFormError('Enter longitude'); return; }
       setSavingCreate(true);
       setFormError(null);
-      await axios.post(`${API_BASE_URL}/api/v1/transformers/create`, { name: nameInput.trim(), capacity: capacityInput, isActive: isActiveInput, depotId: depotInput, lat: latInput, lng: lngInput }, { headers });
+      await axios.post(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/transformers/create`, { name: nameInput.trim(), capacity: capacityInput, isActive: isActiveInput, depotId: depotInput, lat: latInput, lng: lngInput }, { headers });
       setShowCreate(false);
       setNameInput('');
       setCapacityInput('');
@@ -178,7 +179,7 @@ export default function TransformersIndex() {
       if (lngInput === '' || typeof lngInput !== 'number') { setFormError('Enter longitude'); return; }
       setSavingEdit(true);
       setFormError(null);
-      await axios.put(`${API_BASE_URL}/api/v1/transformers/${active.id}`, { name: nameInput.trim(), capacity: capacityInput, isActive: isActiveInput, depotId: depotInput, lat: latInput, lng: lngInput }, { headers });
+      await axios.put(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/transformers/${active.id}`, { name: nameInput.trim(), capacity: capacityInput, isActive: isActiveInput, depotId: depotInput, lat: latInput, lng: lngInput }, { headers });
       setShowEdit(false);
       setActive(null);
       setNameInput('');
@@ -202,7 +203,7 @@ export default function TransformersIndex() {
   const deleteTransformer = async (id: number) => {
     if (!window.confirm('Delete this transformer?')) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/v1/transformers/${id}`, { headers });
+      await axios.delete(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/transformers/${id}`, { headers });
       await fetchTransformers();
       setNotice({ variant: 'success', title: 'Transformer deleted', message: 'The transformer was deleted successfully.' });
       setTimeout(() => setNotice(null), 4000);

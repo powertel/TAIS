@@ -46,6 +46,7 @@ export default function SiteIndex() {
   const [depotName, setDepotName] = useState<string>('');
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  const TRANSFORMER_PREFIX = (import.meta.env as any).VITE_TRANSFORMER_SERVICE_PREFIX || '/transformer-service';
   const headers = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : undefined), [token]);
 
   const normalizeList = (payload: unknown): Transformer[] => {
@@ -64,7 +65,7 @@ export default function SiteIndex() {
       try {
         setLoading(true);
         setError(null);
-        const res = await axios.get(`${API_BASE_URL}/api/v1/transformers`, { headers });
+        const res = await axios.get(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/transformers`, { headers });
         setItems(normalizeList(res.data));
       } catch {
         setError('Failed to load transformers');

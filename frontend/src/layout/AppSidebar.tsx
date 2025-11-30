@@ -47,11 +47,6 @@ const navItems: NavItem[] = [
     path: "/depots",
   },
   {
-    icon: <Building className="w-5 h-5" />,
-    name: "Sites",
-    path: "/sites",
-  },
-  {
     icon: <Zap className="w-5 h-5" />,
     name: "Transformers",
     path: "/transformers",
@@ -60,6 +55,11 @@ const navItems: NavItem[] = [
     icon: <Activity className="w-5 h-5" />,
     name: "Sensors",
     path: "/sensors",
+  },
+    {
+    icon: <Building className="w-5 h-5" />,
+    name: "Sites",
+    path: "/sites",
   },
   {
     icon: <Users className="w-5 h-5" />,

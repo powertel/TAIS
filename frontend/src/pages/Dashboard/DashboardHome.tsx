@@ -10,6 +10,7 @@ interface DashboardStats {
   total_depots: number;
   total_transformers: number;
   total_sensors: number;
+  active_sensors: number;
   active_transformers: number;
   inactive_transformers: number;
 }
@@ -70,6 +71,11 @@ export default function DashboardHome() {
   const { hasNationalAccess, hasRegionAccess, hasDepotAccess, loading: accessLoading } = useUserAccess();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [transformers, setTransformers] = useState<TransformerStatus[]>([]);
+  const [baseTransformers, setBaseTransformers] = useState<{ id: number; name: string; capacity?: number; isActive?: boolean; depotId?: number; depot?: { id: number; name: string; district?: { id: number; name: string; region?: { id: number; name: string } } } }[]>([]);
+  const [districts, setDistricts] = useState<{ id: number; name: string; regionId?: number; region?: { id: number; name: string } }[]>([]);
+  const [depots, setDepots] = useState<{ id: number; name: string; districtId?: number; district?: { id: number; name: string; region?: { id: number; name: string } } }[]>([]);
+  const [regions, setRegions] = useState<{ id: number; name: string }[]>([]);
+  const [sensors, setSensors] = useState<{ id: number; name: string; type: string; transformerId?: number; sensor_reading?: any[] }[]>([]);
   const [selectedTransformer, setSelectedTransformer] = useState<TransformerDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,21 +85,37 @@ export default function DashboardHome() {
   const [transformerSensors, setTransformerSensors] = useState<Record<number, SensorUpdate[]>>({});
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/auth-service';
+  const TRANSFORMER_PREFIX = (import.meta.env as any).VITE_TRANSFORMER_SERVICE_PREFIX
+    || (AUTH_PREFIX && AUTH_PREFIX.includes('transformer') ? AUTH_PREFIX : '/transformer-service');
   
-
-  const groupedTransformers = useMemo(() => {
-    const regions: Record<string, Record<string, TransformerStatus[]>> = {};
+  const hierarchy = useMemo(() => {
+    const regions: Record<string, Record<string, Record<string, TransformerStatus[]>>> = {};
+    const depotMap = new Map<number, { id: number; name: string; districtId?: number; district?: { id: number; name: string; region?: { id: number; name: string } } }>();
+    depots.forEach(d => { if (typeof d.id === 'number') depotMap.set(d.id, d); });
+    const districtMap = new Map<number, { id: number; name: string; regionId?: number; region?: { id: number; name: string } }>();
+    districts.forEach(d => { if (typeof d.id === 'number') districtMap.set(d.id, d); });
+    const baseById = new Map<number, { id: number; name: string; depotId?: number; depot?: { id: number; name: string; district?: { id: number; name: string; region?: { id: number; name: string } } } }>();
+    baseTransformers.forEach(b => { if (typeof b.id === 'number') baseById.set(b.id, b); });
     transformers.forEach((t) => {
-      const region = t.region_name || 'Unknown Region';
-      const depot = t.depot_name || 'Unknown Depot';
+      const base = baseById.get(t.id);
+      const depotId = base?.depot?.id ?? base?.depotId;
+      const depotInfo = typeof depotId === 'number' ? depotMap.get(depotId) : undefined;
+      const distId = depotInfo?.district?.id ?? depotInfo?.districtId;
+      const distInfo = typeof distId === 'number' ? districtMap.get(distId) : undefined;
+      const region = distInfo?.region?.name ?? t.region_name ?? 'Unknown Region';
+      const district = distInfo?.name ?? 'Unknown District';
+      const depot = depotInfo?.name ?? t.depot_name ?? 'Unknown Depot';
       if (!regions[region]) regions[region] = {};
-      if (!regions[region][depot]) regions[region][depot] = [];
-      regions[region][depot].push(t);
+      if (!regions[region][district]) regions[region][district] = {};
+      if (!regions[region][district][depot]) regions[region][district][depot] = [];
+      regions[region][district][depot].push(t);
     });
     return regions;
-  }, [transformers]);
+  }, [transformers, baseTransformers, depots, districts]);
 
   const [openRegions, setOpenRegions] = useState<Record<string, boolean>>({});
+  const [openDistricts, setOpenDistricts] = useState<Record<string, boolean>>({});
   const [openDepots, setOpenDepots] = useState<Record<string, boolean>>({});
 
   // Fetch dashboard data
@@ -101,24 +123,92 @@ export default function DashboardHome() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        const normalizeList = (payload: unknown): any[] => {
+          if (Array.isArray(payload)) return payload as any[];
+          const obj = payload as Record<string, unknown>;
+          for (const k of ['data', 'content', 'items', 'records']) {
+            const v = obj?.[k] as unknown;
+            if (Array.isArray(v)) return v as any[];
+          }
+          return [];
+        };
 
-        // Fetch dashboard stats
-        const statsResponse = await axios.get(`${API_BASE_URL}/dashboard/stats/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+        const [regionsRes, distsRes, depotsRes, transformersRes, sensorsRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/regions`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/districts`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          axios.get(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/depots`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          axios.get(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/transformers`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          axios.get(`${API_BASE_URL}${TRANSFORMER_PREFIX}/api/v1/sensors`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        ]);
+
+        const regionsList = normalizeList(regionsRes.data) as { id: number; name: string }[];
+        const districtsList = normalizeList(distsRes.data) as { id: number; name: string; regionId?: number; region?: { id: number; name: string } }[];
+        const depotsList = normalizeList(depotsRes.data) as { id: number; name: string; districtId?: number; district?: { id: number; name: string; region?: { id: number; name: string } } }[];
+        const baseList = normalizeList(transformersRes.data) as { id: number; name: string; capacity?: number; isActive?: boolean; depotId?: number; depot?: { id: number; name: string; district?: { id: number; name: string; region?: { id: number; name: string } } } }[];
+        const sensorsListRaw = normalizeList(sensorsRes.data);
+        const sensorsList = sensorsListRaw.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          type: s.type,
+          transformerId: s.transformerId ?? s.transformer_id,
+          sensor_reading: Array.isArray(s.sensor_reading) ? s.sensor_reading : [],
+        }));
+
+        setRegions(regionsList);
+        setDistricts(districtsList);
+        setDepots(depotsList);
+        setBaseTransformers(baseList);
+        setSensors(sensorsList);
+
+        const sensorsByTransformer = new Map<number, { id: number }[]>();
+        sensorsList.forEach(s => {
+          const tid = s.transformer?.id ?? s.transformerId;
+          if (typeof tid === 'number') {
+            const arr = sensorsByTransformer.get(tid) || [];
+            arr.push({ id: s.id });
+            sensorsByTransformer.set(tid, arr);
+          }
         });
 
-        setStats(statsResponse.data);
+        const districtById = new Map<number, { id: number; name: string; regionId?: number; region?: { id: number; name: string } }>();
+        districtsList.forEach(d => districtById.set(d.id, d));
+        const depotById = new Map<number, { id: number; name: string; districtId?: number; district?: { id: number; name: string; region?: { id: number; name: string } } }>();
+        depotsList.forEach(d => depotById.set(d.id, d));
+        const regionById = new Map<number, { id: number; name: string }>();
+        regionsList.forEach(r => regionById.set(r.id, r));
 
-        // Fetch transformer status
-        const transformersResponse = await axios.get(`${API_BASE_URL}/dashboard/transformer_status/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+        const statusList: TransformerStatus[] = baseList.map(b => {
+          const depotId = b.depot?.id ?? b.depotId;
+          const depot = typeof depotId === 'number' ? depotById.get(depotId) : undefined;
+          const distId = depot?.district?.id ?? depot?.districtId;
+          const dist = typeof distId === 'number' ? districtById.get(distId!) : undefined;
+          const region = dist?.region?.name ?? (dist?.regionId ? regionById.get(dist.regionId)?.name : undefined) ?? 'Unknown Region';
+          const depotName = depot?.name ?? b.depot?.name ?? 'Unknown Depot';
+          const sensorCount = sensorsByTransformer.get(b.id)?.length || 0;
+          return {
+            id: b.id,
+            name: b.name,
+            transformer_id: String(b.id),
+            depot_name: depotName,
+            region_name: region,
+            capacity: typeof b.capacity === 'number' ? b.capacity : 0,
+            is_active: !!b.isActive,
+            latest_readings: [],
+            sensor_count: sensorCount,
+          };
         });
 
-        setTransformers(transformersResponse.data.slice(0, 10)); // Only get first 10 for display
+        setTransformers(statusList);
+
+        setStats({
+          total_regions: regionsList.length,
+          total_depots: depotsList.length,
+          total_transformers: baseList.length,
+          total_sensors: sensorsList.length,
+          active_sensors: sensorsList.filter((s: any) => (s.is_active ?? s.isActive ?? true)).length,
+          active_transformers: baseList.filter(x => !!x.isActive).length,
+          inactive_transformers: baseList.filter(x => !x.isActive).length,
+        });
       } catch (err) {
         setError('Failed to fetch dashboard data');
         console.error('Error fetching dashboard data:', err);
@@ -187,32 +277,66 @@ export default function DashboardHome() {
   }, [realtimeData]);
 
   const handleTransformerSelect = async (transformerId: number, regionName?: string, depotName?: string) => {
-    console.log('Transformer clicked:', transformerId); // Debug log
-    try {
-      setLoading(true); // Set loading state while fetching transformer details
-      const response = await axios.get(`${API_BASE_URL}/dashboard/${transformerId}/transformer_detail/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+    const base = baseTransformers.find(x => x.id === transformerId);
+    const depotId = base?.depot?.id ?? base?.depotId;
+    const depot = typeof depotId === 'number' ? depots.find(d => d.id === depotId) : undefined;
+    const distId = depot?.district?.id ?? depot?.districtId;
+    const dist = typeof distId === 'number' ? districts.find(d => d.id === distId) : undefined;
+    const region = dist?.region?.name ?? (dist?.regionId ? regions.find(r => r.id === dist.regionId)?.name : undefined) ?? 'Unknown Region';
+    const getLatestReading = (s: { type: string; sensor_reading?: any[] }) => {
+      const readings = s.sensor_reading || [];
+      const last = readings.length > 0 ? readings[readings.length - 1] : null;
+      if (!last) return null;
+      const ts = last.updated_at || last.created_at || new Date().toISOString();
+      const t = s.type;
+      let val: number | string | undefined = undefined;
+      if (t === 'temperature') val = last.temperature ?? last.value ?? last.temp;
+      else if (t === 'oil_level') val = last.oil_level ?? last.level ?? last.value;
+      else if (t === 'pressure') val = last.pressure ?? last.value;
+      else if (t === 'current') val = last.current ?? last.value;
+      else if (t === 'voltage') val = last.voltage ?? last.value;
+      else if (t === 'humidity') val = last.humidity ?? last.value;
+      else if (t === 'contact') {
+        const v = (last.contact ?? last.value);
+        val = typeof v === 'string' ? (v.toLowerCase() === 'closed' ? 1 : 0) : (v ? 1 : 0);
+      } else if (t === 'motion') {
+        const v = (last.motion ?? last.value);
+        val = typeof v === 'string' ? (v.toLowerCase() === 'detected' ? 1 : 0) : (v ? 1 : 0);
+      } else if (t === 'video') {
+        const v = last.active ?? last.value;
+        val = v ? 1 : 0;
+      } else {
+        val = last.value;
+      }
+      return typeof val === 'number' || typeof val === 'string'
+        ? { value: typeof val === 'number' ? val : Number(val), timestamp: new Date(ts).toISOString(), is_alert: false }
+        : null;
+    };
 
-      console.log('Transformer details fetched:', response.data); // Debug log
-      setSelectedTransformer(response.data);
-      if (regionName && depotName) {
-        setOpenRegions({ [regionName]: true });
-        setOpenDepots({ [`${regionName}::${depotName}`]: true });
-      }
-  } catch (err: any) {
-      console.error('Error fetching transformer details:', err);
-      setError(`Failed to fetch transformer details: ${err.response?.status} - ${err.response?.data?.error || 'Unknown error'}`);
-      // Log more details to help debug
-      if (err.response) {
-        console.log('Response data:', err.response.data);
-        console.log('Response status:', err.response.status);
-        console.log('Response headers:', err.response.headers);
-      }
-    } finally {
-      setLoading(false);
+    const sensorList = sensors.filter(s => s.transformerId === transformerId).map(s => ({
+      id: s.id,
+      name: s.name,
+      sensor_type: s.type,
+      is_active: true,
+      latest_reading: getLatestReading(s),
+    }));
+    setSelectedTransformer({
+      id: transformerId,
+      name: base?.name || String(transformerId),
+      transformer_id: String(transformerId),
+      depot_name: depot?.name ?? base?.depot?.name ?? 'Unknown Depot',
+      region_name: region,
+      capacity: typeof base?.capacity === 'number' ? base.capacity! : 0,
+      installation_date: '',
+      description: '',
+      is_active: !!base?.isActive,
+      sensor_count: sensorList.length,
+      sensors: sensorList,
+      recent_readings: [],
+    });
+    if (regionName && depotName) {
+      setOpenRegions({ [regionName]: true });
+      setOpenDepots({ [`${regionName}::${depotName}`]: true });
     }
   };
 
@@ -327,7 +451,7 @@ export default function DashboardHome() {
             </div>
             <div className="ml-4">
               <h4 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats?.total_sensors || 0}
+                {stats?.active_sensors || 0}
               </h4>
               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Active Sensors</span>
             </div>
@@ -336,29 +460,10 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      
-
-      {/* Real-time Connection Status Banner */}
-      <div className="rounded-2xl bg-white/80 p-4 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className={`h-3 w-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {isConnected ? 'Connected to real-time sensor feed' : 'Disconnected from real-time sensor feed'}
-            </span>
-          </div>
-          {connectionError && (
-            <div className="text-sm text-red-600 dark:text-red-400">
-              Error: {connectionError}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Main Dashboard Content - Hierarchy Visualization with Interactive Transformer Details */}
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Left Side: Hierarchy Tree - conditionally render based on access level */}
-        {(hasNationalAccess() || hasRegionAccess()) && (
+        {true && (
           <div className="lg:w-1/3 xl:w-1/4 rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Monitored Transformers</h3>
@@ -368,7 +473,85 @@ export default function DashboardHome() {
               </div>
             </div>
             <div className="h-screen overflow-y-auto scrollbar-white rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:border-gray-700/50 dark:from-gray-900/50 dark:to-gray-800/50">
-              {Object.entries(groupedTransformers).map(([region, depots]) => (
+              {Object.entries(hierarchy).map(([region, distMap]) => (
+                <details key={region} className="mb-3 group" open={!!openRegions[region]}>
+                  <summary onClick={(e) => { e.preventDefault(); setOpenRegions(prev => ({ ...prev, [region]: !prev[region] })); }} className="flex items-center justify-between cursor-pointer rounded-lg px-3 py-2 bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100 transition dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-2">
+                      <MapPinned className="w-4 h-4" />
+                      <span className="font-medium">{region}</span>
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">Region</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                        {Object.values(distMap).reduce((acc, depMap) => acc + Object.values(depMap).reduce((a, l) => a + l.length, 0), 0)}
+                      </span>
+                      <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+                    </div>
+                  </summary>
+                  <div className="mt-2 pl-4 border-l-2 border-blue-100 dark:border-blue-900/40">
+                    {Object.entries(distMap).map(([district, depMap]) => (
+                      <details key={district} className="mb-2 group" open={!!openDistricts[`${region}::${district}`]}>
+                        <summary onClick={(e) => { e.preventDefault(); setOpenDistricts(prev => ({ ...prev, [`${region}::${district}`]: !prev[`${region}::${district}`] })); }} className="flex items-center justify-between cursor-pointer rounded-md px-3 py-2 bg-violet-50 text-violet-800 border border-violet-200 hover:bg-violet-100 transition dark:bg-violet-900/30 dark:text-violet-200 dark:border-violet-800">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{district}</span>
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300">District</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300">
+                              {Object.values(depMap).reduce((acc, l) => acc + l.length, 0)}
+                            </span>
+                            <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+                          </div>
+                        </summary>
+                        <div className="mt-2 pl-4 border-l-2 border-violet-100 dark:border-violet-900/40">
+                          {Object.entries(depMap).map(([depot, list]) => (
+                            <details key={depot} className="mb-2 group" open={!!openDepots[`${region}::${district}::${depot}`]}>
+                              <summary onClick={(e) => { e.preventDefault(); setOpenDepots(prev => ({ ...prev, [`${region}::${district}::${depot}`]: !prev[`${region}::${district}::${depot}`] })); }} className="flex items-center justify-between cursor-pointer rounded-md px-3 py-2 bg-indigo-50 text-indigo-800 border border-indigo-200 hover:bg-indigo-100 transition dark:bg-indigo-900/30 dark:text-indigo-200 dark:border-indigo-800">
+                                <div className="flex items-center gap-2">
+                                  <Warehouse className="w-4 h-4" />
+                                  <span className="font-medium">{depot}</span>
+                                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">Depot</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
+                                    {list.length}
+                                  </span>
+                                  <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
+                                </div>
+                              </summary>
+                              <ul className="mt-2 space-y-2">
+                                {list.map((t) => {
+                                  const realTimeSensors = transformerSensors[t.id] || [];
+                                  const alertCount = realTimeSensors.filter(sensor => sensor.is_alert).length;
+
+                                  return (
+                                    <li key={t.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white shadow-sm hover:shadow-md border border-gray-200/60 dark:border-gray-700/60 dark:bg-gray-800 transition">
+                                      <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id, region, depot)}>
+                                        <div className="flex items-center gap-2">
+                                          <Zap className={`w-4 h-4 ${t.is_active ? 'text-success' : 'text-danger'}`} />
+                                          <span className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</span>
+                                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.is_active ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20' : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
+                                          {alertCount > 0 && (
+                                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-danger bg-opacity-10 text-danger dark:bg-opacity-20">
+                                              {alertCount} Alert{alertCount > 1 ? 's' : ''}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">ID: {t.transformer_id} • {t.capacity} MVA • {t.sensor_count} sensors</div>
+                                      </button>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </details>
+                          ))}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </details>
+              ))}
+              {false && Object.entries(groupedTransformers).map(([region, depots]) => (
                 <details key={region} className="mb-3 group" open={!!openRegions[region]}>
                   <summary onClick={(e) => { e.preventDefault(); setOpenRegions(prev => ({ ...prev, [region]: !prev[region] })); }} className="flex items-center justify-between cursor-pointer rounded-lg px-3 py-2 bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100 transition dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800">
                     <div className="flex items-center gap-2">
@@ -429,7 +612,7 @@ export default function DashboardHome() {
                   </div>
                 </details>
               ))}
-              {Object.keys(groupedTransformers).length === 0 && (
+              {Object.keys(hierarchy).length === 0 && (
                 <div className="flex h-full items-center justify-center text-sm text-gray-500 dark:text-gray-400">No transformers available</div>
               )}
             </div>
@@ -437,7 +620,7 @@ export default function DashboardHome() {
         )}
 
         {/* Right Side: Selected Transformer Details */}
-        <div className={`${(hasNationalAccess() || hasRegionAccess()) ? 'lg:w-2/3 xl:w-3/4' : 'lg:w-full'}`}>
+        <div className={`lg:w-2/3 xl:w-3/4`}>
           <div className="rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Transformer Details</h3>

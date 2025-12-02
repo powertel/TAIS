@@ -276,7 +276,7 @@ export default function DashboardHome() {
     }
   }, [realtimeData]);
 
-  const handleTransformerSelect = async (transformerId: number, regionName?: string, depotName?: string) => {
+  const handleTransformerSelect = async (transformerId: number, regionName?: string, districtName?: string, depotName?: string) => {
     const base = baseTransformers.find(x => x.id === transformerId);
     const depotId = base?.depot?.id ?? base?.depotId;
     const depot = typeof depotId === 'number' ? depots.find(d => d.id === depotId) : undefined;
@@ -335,8 +335,13 @@ export default function DashboardHome() {
       recent_readings: [],
     });
     if (regionName && depotName) {
-      setOpenRegions({ [regionName]: true });
-      setOpenDepots({ [`${regionName}::${depotName}`]: true });
+      setOpenRegions(prev => ({ ...prev, [regionName]: true }));
+      if (districtName) {
+        setOpenDistricts(prev => ({ ...prev, [`${regionName}::${districtName}`]: true }));
+        setOpenDepots(prev => ({ ...prev, [`${regionName}::${districtName}::${depotName}`]: true }));
+      } else {
+        setOpenDepots(prev => ({ ...prev, [`${regionName}::${depotName}`]: true }));
+      }
     }
   };
 
@@ -525,11 +530,15 @@ export default function DashboardHome() {
                                   const alertCount = realTimeSensors.filter(sensor => sensor.is_alert).length;
 
                                   return (
-                                    <li key={t.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white shadow-sm hover:shadow-md border border-gray-200/60 dark:border-gray-700/60 dark:bg-gray-800 transition">
-                                      <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id, region, depot)}>
+                                    <li key={t.id} className={`flex items-center justify-between rounded-lg px-3 py-2 shadow-sm hover:shadow-md transition border ${
+                                      selectedTransformer?.id === t.id
+                                        ? 'bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-600'
+                                        : 'bg-white border-gray-200/60 dark:border-gray-700/60 dark:bg-gray-800'
+                                    }`}>
+                                      <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id, region, district, depot)}>
                                         <div className="flex items-center gap-2">
                                           <Zap className={`w-4 h-4 ${t.is_active ? 'text-success' : 'text-danger'}`} />
-                                          <span className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</span>
+                                          <span className="text-xs font-medium text-gray-900 dark:text-white">{t.name}</span>
                                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.is_active ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20' : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
                                           {alertCount > 0 && (
                                             <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-danger bg-opacity-10 text-danger dark:bg-opacity-20">
@@ -589,11 +598,15 @@ export default function DashboardHome() {
                             const alertCount = realTimeSensors.filter(sensor => sensor.is_alert).length;
 
                             return (
-                              <li key={t.id} className="flex items-center justify-between rounded-lg px-3 py-2 bg-white shadow-sm hover:shadow-md border border-gray-200/60 dark:border-gray-700/60 dark:bg-gray-800 transition">
-                                <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id, region, depot)}>
+                              <li key={t.id} className={`flex items-center justify-between rounded-lg px-3 py-2 shadow-sm hover:shadow-md transition border ${
+                                selectedTransformer?.id === t.id
+                                  ? 'bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-600'
+                                  : 'bg-white border-gray-200/60 dark:border-gray-700/60 dark:bg-gray-800'
+                              }`}>
+                                <button className="text-left flex-1" onClick={() => handleTransformerSelect(t.id, region, undefined, depot)}>
                                   <div className="flex items-center gap-2">
                                     <Zap className={`w-4 h-4 ${t.is_active ? 'text-success' : 'text-danger'}`} />
-                                    <span className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</span>
+                                  <span className="text-xs font-medium text-gray-900 dark:text-white">{t.name}</span>
                                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.is_active ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20' : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'}`}>{t.is_active ? 'Active' : 'Inactive'}</span>
                                     {alertCount > 0 && (
                                       <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-danger bg-opacity-10 text-danger dark:bg-opacity-20">

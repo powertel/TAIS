@@ -8,13 +8,14 @@ import {
   MapPinned,
   Warehouse,
   Zap,
+  Activity,
   User,
   Calendar,
   FileText,
   Users,
   ChevronDown,
   MoreHorizontal,
-  Activity,
+  Building,
 } from 'lucide-react';
 
 interface NavItem {
@@ -36,6 +37,11 @@ const navItems: NavItem[] = [
     path: "/regions",
   },
   {
+    icon: <MapPinned className="w-5 h-5" />,
+    name: "Districts",
+    path: "/districts",
+  },
+  {
     icon: <Warehouse className="w-5 h-5" />,
     name: "Depots",
     path: "/depots",
@@ -50,32 +56,20 @@ const navItems: NavItem[] = [
     name: "Sensors",
     path: "/sensors",
   },
-  {
-    icon: <User className="w-5 h-5" />,
-    name: "Profile",
-    path: "/profile",
-  },
-  {
-    icon: <Calendar className="w-5 h-5" />,
-    name: "Calendar",
-    path: "/calendar",
+    {
+    icon: <Building className="w-5 h-5" />,
+    name: "Sites",
+    path: "/sites",
   },
   {
     icon: <Users className="w-5 h-5" />,
     name: "User Management",
-    subItems: [
-      { name: "Users", path: "/users" },
-      { name: "Roles", path: "/roles" },
-      { name: "Permissions", path: "/permissions" },
-    ],
+    path: "/users",
   },
   {
-    icon: <FileText className="w-5 h-5" />,
-    name: "Pages",
-    subItems: [
-      { name: "Blank", path: "/blank" },
-      { name: "404 Error", path: "/error-404" },
-    ],
+    icon: <User className="w-5 h-5" />,
+    name: "Profile",
+    path: "/profile",
   },
 ];
 

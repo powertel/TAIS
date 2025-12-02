@@ -33,6 +33,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  const AUTH_PREFIX = import.meta.env.VITE_AUTH_SERVICE_PREFIX || '/auth-service';
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token') || sessionStorage.getItem('token'));
   const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -70,34 +71,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (username: string, password: string, remember: boolean = true): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login/`, {
+      const response = await fetch(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/auth/authenticate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email: username, password }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        const { access, user_id, username: userName, email, first_name, last_name } = data;
-
-        // Store token and user info
+      if (response.ok) {
+        const tokenValue: string | null = data?.access_token || data?.access || data?.accessToken || data?.token || null;
+        const refreshToken: string | null = data?.refresh_token || null;
         const storage = remember ? localStorage : sessionStorage;
-        storage.setItem('token', access);
-        const userInfo = {
-          id: user_id,
-          username: userName,
-          email,
-          first_name,
-          last_name
+        if (tokenValue) storage.setItem('token', tokenValue);
+        if (refreshToken) storage.setItem('refresh_token', refreshToken);
+
+        const userInfo: User = {
+          id: data?.id ?? 0,
+          username: data?.email ?? username,
+          email: data?.email ?? '',
+          first_name: data?.firstname ?? data?.first_name ?? '',
+          last_name: data?.lastname ?? data?.last_name ?? '',
         };
         storage.setItem('user', JSON.stringify(userInfo));
 
-        setToken(access);
+        setToken(tokenValue);
         setUser(userInfo);
-        scheduleExpiryLogout(access);
+        if (tokenValue) scheduleExpiryLogout(tokenValue);
         return true;
       } else {
         return false;
@@ -108,12 +110,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     // Clear stored data
+    try {
+      if (token) {
+        await fetch(`${API_BASE_URL}${AUTH_PREFIX}/api/v1/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+      }
+    } catch {}
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('refresh_token');
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
+    sessionStorage.removeItem('refresh_token');
 
     setToken(null);
     setUser(null);

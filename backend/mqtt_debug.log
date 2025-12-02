@@ -1,6 +1,0 @@
-powerteltais/24E124136F207121/85 | {"value": 28.8, "timestamp": "2025-11-25T14:04:12Z", "deveui": "24E124136F207121", "port": 85, "decoded": {"codec": "cayenne", "records": [{"channel": 3, "type": 103, "value_be": 819.3, "value_le": 28.8, "name": "temperature"}, {"channel": 4, "type": 104, "value": 47.0, "name": "humidity"}, {"channel": 6, "type": 0, "value": 1, "name": "digital_in"}], "primary_value": 28.8}}
-powerteltais/TEST83306694/85 | {"value": 95.95, "timestamp": "2025-11-25T14:08:30Z", "deveui": "TEST83306694", "port": 85}
-powerteltais/TEST83306694/85 | {"value": 42.12, "timestamp": "2025-11-25T14:08:30Z", "deveui": "TEST83306694", "port": 85}
-powerteltais/TEST83306694/85 | {"value": 54.42, "timestamp": "2025-11-25T14:08:30Z", "deveui": "TEST83306694", "port": 85}
-powerteltais/TEST83306694/85 | {"value": 90.86, "timestamp": "2025-11-25T14:08:30Z", "deveui": "TEST83306694", "port": 85}
-powerteltais/TEST83306694/85 | {"value": 24.98, "timestamp": "2025-11-25T14:08:30Z", "deveui": "TEST83306694", "port": 85}

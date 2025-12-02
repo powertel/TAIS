@@ -485,12 +485,8 @@ export default function DashboardHome() {
                     <div className="flex items-center gap-2">
                       <MapPinned className="w-4 h-4" />
                       <span className="text-sm font-medium">{region}</span>
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-700">Region</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-700">
-                        {Object.values(distMap).reduce((acc, depMap) => acc + Object.values(depMap).reduce((a, l) => a + l.length, 0), 0)}
-                      </span>
                       <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
                     </div>
                   </summary>
@@ -500,12 +496,8 @@ export default function DashboardHome() {
                         <summary onClick={(e) => { e.preventDefault(); setOpenDistricts(prev => ({ ...prev, [`${region}::${district}`]: !prev[`${region}::${district}`] })); }} className="flex items-center justify-between cursor-pointer rounded-xl px-3 py-1.5 bg-violet-50 text-violet-800 border border-violet-200 shadow-sm hover:bg-violet-100 transition group-open:bg-violet-100 dark:bg-violet-900/30 dark:text-violet-200 dark:border-violet-800">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium">{district}</span>
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-violet-700 ring-1 ring-violet-200 dark:bg-violet-900/50 dark:text-violet-300 dark:ring-violet-700">District</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-violet-700 ring-1 ring-violet-200 dark:bg-violet-900/50 dark:text-violet-300 dark:ring-violet-700">
-                              {Object.values(depMap).reduce((acc, l) => acc + l.length, 0)}
-                            </span>
                             <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
                           </div>
                         </summary>
@@ -516,12 +508,8 @@ export default function DashboardHome() {
                                 <div className="flex items-center gap-2">
                                   <Warehouse className="w-4 h-4" />
                                   <span className="text-sm font-medium">{depot}</span>
-                                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-300 dark:ring-indigo-700">Depot</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-900/50 dark:text-indigo-300 dark:ring-indigo-700">
-                                    {list.length}
-                                  </span>
                                   <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
                                 </div>
                               </summary>
@@ -567,12 +555,8 @@ export default function DashboardHome() {
                     <div className="flex items-center gap-2">
                       <MapPinned className="w-4 h-4" />
                       <span className="font-medium">{region}</span>
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">Region</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                        {Object.values(depots).reduce((acc, d) => acc + d.length, 0)}
-                      </span>
                       <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
                     </div>
                   </summary>
@@ -582,13 +566,9 @@ export default function DashboardHome() {
                         <summary onClick={(e) => { e.preventDefault(); setOpenDepots(prev => ({ ...prev, [`${region}::${depot}`]: !prev[`${region}::${depot}`] })); }} className="flex items-center justify-between cursor-pointer rounded-xl px-3 py-1.5 bg-indigo-50 text-indigo-800 border border-indigo-200 shadow-sm hover:bg-indigo-100 transition group-open:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-200 dark:border-indigo-800">
                           <div className="flex items-center gap-2">
                             <Warehouse className="w-4 h-4" />
-                          <span className="text-sm font-medium">{depot}</span>
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">Depot</span>
+                            <span className="text-sm font-medium">{depot}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold bg-white/70 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
-                              {list.length}
-                            </span>
                             <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
                           </div>
                         </summary>

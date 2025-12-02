@@ -40,6 +40,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return storedUser ? JSON.parse(storedUser) : null;
   });
   const expiryTimer = useRef<number | null>(null);
+  const refreshTimer = useRef<number | null>(null);
+  const idleTimer = useRef<number | null>(null);
+  const refreshingPromise = useRef<Promise<string | null> | null>(null);
+  const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
   const parseJwt = (t: string) => {
     try {
@@ -67,6 +71,79 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         logout();
       }, delay);
     }
+  };
+
+  const scheduleProactiveRefresh = (tkn: string | null) => {
+    if (refreshTimer.current) {
+      window.clearTimeout(refreshTimer.current);
+      refreshTimer.current = null;
+    }
+    if (!tkn) return;
+    const payload = parseJwt(tkn);
+    if (payload && payload.exp) {
+      const now = Date.now();
+      const expMs = payload.exp * 1000;
+      const leadMs = 60 * 1000; // refresh 1 minute before expiry
+      const delay = Math.max(expMs - now - leadMs, 0);
+      refreshTimer.current = window.setTimeout(async () => {
+        try {
+          await refreshAccessToken();
+        } catch {}
+      }, delay);
+    }
+  };
+
+  const getActiveStorage = () => (localStorage.getItem('token') || localStorage.getItem('refresh_token')) ? localStorage : sessionStorage;
+
+  const refreshAccessToken = async (): Promise<string | null> => {
+    if (refreshingPromise.current) return refreshingPromise.current;
+    const refreshToken = localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
+    if (!refreshToken) return null;
+    const endpoints = [
+      `${API_BASE_URL}${AUTH_PREFIX}/api/v1/auth/refresh`,
+      `${API_BASE_URL}${AUTH_PREFIX}/api/v1/auth/refresh-token`,
+      `${API_BASE_URL}${AUTH_PREFIX}/api/v1/auth/token/refresh`,
+    ];
+    const attempt = async () => {
+      for (const url of endpoints) {
+        try {
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          });
+          const data = await resp.json();
+          if (resp.ok) {
+            const newAccess: string | null = data?.access_token || data?.access || data?.token || null;
+            const newRefresh: string | null = data?.refresh_token || null;
+            const storage = getActiveStorage();
+            if (newAccess) storage.setItem('token', newAccess);
+            if (newRefresh) storage.setItem('refresh_token', newRefresh);
+            setToken(newAccess);
+            if (newAccess) {
+              scheduleExpiryLogout(newAccess);
+              scheduleProactiveRefresh(newAccess);
+            }
+            return newAccess;
+          }
+        } catch {}
+      }
+      return null;
+    };
+    const promise = attempt().finally(() => { refreshingPromise.current = null; });
+    refreshingPromise.current = promise;
+    return promise;
+  };
+
+  const resetIdleTimer = () => {
+    if (idleTimer.current) {
+      window.clearTimeout(idleTimer.current);
+      idleTimer.current = null;
+    }
+    if (!token) return;
+    idleTimer.current = window.setTimeout(() => {
+      logout();
+    }, IDLE_TIMEOUT_MS);
   };
 
   const login = async (username: string, password: string, remember: boolean = true): Promise<boolean> => {
@@ -99,7 +176,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         setToken(tokenValue);
         setUser(userInfo);
-        if (tokenValue) scheduleExpiryLogout(tokenValue);
+        if (tokenValue) {
+          scheduleExpiryLogout(tokenValue);
+          scheduleProactiveRefresh(tokenValue);
+        }
+        resetIdleTimer();
         return true;
       } else {
         return false;
@@ -136,11 +217,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       window.clearTimeout(expiryTimer.current);
       expiryTimer.current = null;
     }
+    if (refreshTimer.current) {
+      window.clearTimeout(refreshTimer.current);
+      refreshTimer.current = null;
+    }
+    if (idleTimer.current) {
+      window.clearTimeout(idleTimer.current);
+      idleTimer.current = null;
+    }
   };
 
   const isAuthenticated = !!token;
 
-  // Attach axios interceptors for auth and handle 401
+  // Attach axios interceptors for auth and handle 401 with refresh
   useEffect(() => {
     const reqId = axios.interceptors.request.use((config) => {
       if (token) {
@@ -151,9 +240,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
     const resId = axios.interceptors.response.use(
       (res) => res,
-      (error) => {
-        if (error?.response?.status === 401) {
-          logout();
+      async (error) => {
+        const status = error?.response?.status;
+        const originalRequest = error?.config || {};
+        if (status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          const newAccess = await refreshAccessToken();
+          if (newAccess) {
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers['Authorization'] = `Bearer ${newAccess}`;
+            return axios(originalRequest);
+          } else {
+            await logout();
+          }
         }
         return Promise.reject(error);
       }
@@ -187,15 +286,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [token]);
 
   // Auto logout on expiry and sync across tabs
+
   useEffect(() => {
     scheduleExpiryLogout(token);
+    scheduleProactiveRefresh(token);
+    resetIdleTimer();
+    const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    const onActivity = () => resetIdleTimer();
+    activityEvents.forEach(evt => window.addEventListener(evt, onActivity));
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'token' && e.newValue === null) {
         logout();
       }
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      activityEvents.forEach(evt => window.removeEventListener(evt, onActivity));
+    };
   }, [token]);
 
   return (

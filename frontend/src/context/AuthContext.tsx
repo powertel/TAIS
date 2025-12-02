@@ -263,7 +263,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, [token]);
 
-  // Auto logout/refresh scheduling and sync across tabs
+  useEffect(() => {
+    const originalFetch = window.fetch.bind(window);
+    const wrappedFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : (input as URL).toString();
+      const mergedInit: RequestInit = { ...(init || {}) };
+      const hdrs = new Headers(mergedInit.headers as HeadersInit | undefined);
+      if (token && !hdrs.has('Authorization')) {
+        hdrs.set('Authorization', `Bearer ${token}`);
+      }
+      mergedInit.headers = hdrs;
+      const res = await originalFetch(input, mergedInit);
+      if (res.status === 401 && token && !url.includes('/api/v1/auth/logout')) {
+        logout();
+      }
+      return res;
+    };
+    window.fetch = wrappedFetch as any;
+    return () => {
+      window.fetch = originalFetch as any;
+    };
+  }, [token]);
+
+  // Auto logout on expiry and sync across tabs
+
   useEffect(() => {
     scheduleExpiryLogout(token);
     scheduleProactiveRefresh(token);

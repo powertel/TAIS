@@ -359,10 +359,10 @@ export default function DashboardHome() {
   return (
     <div className="space-y-6">
       {/* Welcome Message */}
-      <div className="rounded-2xl bg-gradient-to-r from-brand-400 to-brand-600 px-6 pb-4 pt-6 shadow-lg dark:from-brand-500 dark:to-brand-700 sm:px-8">
+      <div className="rounded-2xl bg-gradient-to-r from-brand-400 to-brand-600 px-4 pb-3 pt-4 shadow-lg dark:from-brand-500 dark:to-brand-700 sm:px-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-white">
+            <h2 className="text-xl font-bold text-white">
               {(() => {
                 const hour = new Date().getHours();
                 const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
@@ -382,18 +382,18 @@ export default function DashboardHome() {
       </div>
 
       {/* Stats Cards - conditionally render based on access level */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {hasNationalAccess() && (
-          <div className="group relative overflow-hidden rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl dark:bg-gray-800/80 dark:hover:bg-gray-800/90">
+          <div className="group relative overflow-hidden rounded-2xl bg-white/80 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl dark:bg-gray-800/80 dark:hover:bg-gray-800/90">
             <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-brand-100 opacity-20 transition-all duration-500 group-hover:scale-110 dark:bg-brand-900"></div>
             <div className="relative z-10 flex items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 shadow-md">
-                <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 shadow-md">
+                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7ZM12 15C9.23858 15 7 17.2386 7 20H17C17 17.2386 14.7614 15 12 15Z" />
                 </svg>
               </div>
               <div className="ml-4">
-                <h4 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h4 className="text-xl font-bold text-gray-900 dark:text-white">
                   {stats?.total_regions || 0}
                 </h4>
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Regions</span>
@@ -404,16 +404,16 @@ export default function DashboardHome() {
         )}
 
         {(hasNationalAccess() || hasRegionAccess()) && (
-          <div className="group relative overflow-hidden rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl dark:bg-gray-800/80 dark:hover:bg-gray-800/90">
+          <div className="group relative overflow-hidden rounded-2xl bg-white/80 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl dark:bg-gray-800/80 dark:hover:bg-gray-800/90">
             <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-blue-light-100 opacity-20 transition-all duration-500 group-hover:scale-110 dark:bg-blue-light-900"></div>
             <div className="relative z-10 flex items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-light-400 to-blue-light-600 shadow-md">
-                <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-light-400 to-blue-light-600 shadow-md">
+                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7ZM12 15C9.23858 15 7 17.2386 7 20H17C17 17.2386 14.7614 15 12 15Z" />
                 </svg>
               </div>
               <div className="ml-4">
-                <h4 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h4 className="text-xl font-bold text-gray-900 dark:text-white">
                   {stats?.total_depots || 0}
                 </h4>
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Depots</span>
@@ -423,16 +423,16 @@ export default function DashboardHome() {
           </div>
         )}
 
-        <div className="group relative overflow-hidden rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl dark:bg-gray-800/80 dark:hover:bg-gray-800/90">
+        <div className="group relative overflow-hidden rounded-2xl bg-white/80 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl dark:bg-gray-800/80 dark:hover:bg-gray-800/90">
           <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-success-100 opacity-20 transition-all duration-500 group-hover:scale-110 dark:bg-success-900"></div>
           <div className="relative z-10 flex items-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-success-400 to-success-600 shadow-md">
-              <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-success-400 to-success-600 shadow-md">
+              <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M13 3H1v18h12V3zm0 16H3V5h10v14zM23 3h-8v2h8v14h-8v2h8V3z"/>
               </svg>
             </div>
             <div className="ml-4">
-              <h4 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h4 className="text-xl font-bold text-gray-900 dark:text-white">
                 {stats?.total_transformers || 0}
               </h4>
               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Transformers</span>
@@ -441,16 +441,16 @@ export default function DashboardHome() {
           <div className="mt-4 h-1 w-full bg-gradient-to-r from-success-100 to-success-300 rounded-full dark:from-success-800 dark:to-success-600"></div>
         </div>
 
-        <div className="group relative overflow-hidden rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl dark:bg-gray-800/80 dark:hover:bg-gray-800/90">
+        <div className="group relative overflow-hidden rounded-2xl bg-white/80 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl dark:bg-gray-800/80 dark:hover:bg-gray-800/90">
           <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-orange-100 opacity-20 transition-all duration-500 group-hover:scale-110 dark:bg-orange-900"></div>
           <div className="relative z-10 flex items-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 shadow-md">
-              <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 shadow-md">
+              <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7ZM12 15C9.23858 15 7 17.2386 7 20H17C17 17.2386 14.7614 15 12 15Z" />
               </svg>
             </div>
             <div className="ml-4">
-              <h4 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h4 className="text-xl font-bold text-gray-900 dark:text-white">
                 {stats?.active_sensors || 0}
               </h4>
               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Active Sensors</span>
@@ -464,15 +464,15 @@ export default function DashboardHome() {
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Left Side: Hierarchy Tree - conditionally render based on access level */}
         {true && (
-          <div className="lg:w-1/3 xl:w-1/4 rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
+          <div className="lg:w-1/3 xl:w-1/4 rounded-2xl bg-white/80 p-4 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Monitored Transformers</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Monitored Transformers</h3>
               <div className="flex items-center space-x-2">
                 <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'} `}></div>
                 <span className="text-sm text-brand-600 dark:text-brand-400">Live</span>
               </div>
             </div>
-            <div className="h-screen overflow-y-auto scrollbar-white rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:border-gray-700/50 dark:from-gray-900/50 dark:to-gray-800/50">
+            <div className="h-[70vh] overflow-y-auto scrollbar-white rounded-xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-white p-3 backdrop-blur-sm dark:border-gray-700/50 dark:from-gray-900/50 dark:to-gray-800/50">
               {Object.entries(hierarchy).map(([region, distMap]) => (
                 <details key={region} className="mb-3 group" open={!!openRegions[region]}>
                   <summary onClick={(e) => { e.preventDefault(); setOpenRegions(prev => ({ ...prev, [region]: !prev[region] })); }} className="flex items-center justify-between cursor-pointer rounded-lg px-3 py-2 bg-blue-50 text-blue-800 border border-blue-200 hover:bg-blue-100 transition dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800">
@@ -621,22 +621,22 @@ export default function DashboardHome() {
 
         {/* Right Side: Selected Transformer Details */}
         <div className={`lg:w-2/3 xl:w-3/4`}>
-          <div className="rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
+          <div className="rounded-2xl bg-white/80 p-4 shadow-lg backdrop-blur-sm dark:bg-gray-800/80">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Transformer Details</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Transformer Details</h3>
               <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
             </div>
-            <div className="rounded-xl bg-gradient-to-br from-gray-50 to-white p-4 backdrop-blur-sm dark:from-gray-900/50 dark:to-gray-800/50">
+            <div className="rounded-xl bg-gradient-to-br from-gray-50 to-white p-3 backdrop-blur-sm dark:from-gray-900/50 dark:to-gray-800/50">
               {selectedTransformer ? (
                 <div className="space-y-3">
                   {/* Header Card */}
-                  <div className="p-4 bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
+                  <div className="p-3 bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
                     <div className="flex justify-between items-center">
                       <div>
-                        <h4 className="font-semibold text-xl text-gray-900 dark:text-white">{selectedTransformer.name}</h4>
+                        <h4 className="font-semibold text-lg text-gray-900 dark:text-white">{selectedTransformer.name}</h4>
                         <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">ID: {selectedTransformer.transformer_id} • Depot: {selectedTransformer.depot_name}</p>
                       </div>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-4 py-2 text-xs font-semibold ${
+                      <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold ${
                         selectedTransformer.is_active
                           ? 'bg-gradient-to-r from-success-400 to-success-600 text-white shadow-md'
                           : 'bg-gradient-to-r from-danger-400 to-danger-600 text-white shadow-md'
@@ -647,12 +647,12 @@ export default function DashboardHome() {
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div className="p-4 bg-gradient-to-br from-brand-100 to-brand-300 rounded-xl shadow-md backdrop-blur-sm dark:from-brand-900/30 dark:to-brand-800/30 border border-brand-300/40 dark:border-brand-700/50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+                    <div className="p-3 bg-gradient-to-br from-brand-100 to-brand-300 rounded-xl shadow-md backdrop-blur-sm dark:from-brand-900/30 dark:to-brand-800/30 border border-brand-300/40 dark:border-brand-700/50">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-brand-600 dark:text-brand-400 uppercase tracking-wide">Capacity</p>
-                          <p className="text-2xl font-bold text-brand-800 dark:text-brand-200 mt-1">{selectedTransformer.capacity} MVA</p>
+                          <p className="text-xl font-bold font-mono tracking-tight text-brand-800 dark:text-brand-200 mt-1">{selectedTransformer.capacity} MVA</p>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center justify-center">
                           <svg className="w-5 h-5 text-brand-600 dark:text-brand-400" fill="currentColor" viewBox="0 0 24 24">
@@ -665,11 +665,11 @@ export default function DashboardHome() {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gradient-to-br from-blue-light-100 to-blue-light-300 rounded-xl shadow-md backdrop-blur-sm dark:from-blue-light-900/30 dark:to-blue-light-800/30 border border-blue-light-300/40 dark:border-blue-light-700/50">
+                    <div className="p-3 bg-gradient-to-br from-blue-light-100 to-blue-light-300 rounded-xl shadow-md backdrop-blur-sm dark:from-blue-light-900/30 dark:to-blue-light-800/30 border border-blue-light-300/40 dark:border-blue-light-700/50">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-blue-light-600 dark:text-blue-light-400 uppercase tracking-wide">Sensors</p>
-                          <p className="text-2xl font-bold text-blue-light-800 dark:text-blue-light-200 mt-1">{selectedTransformer.sensor_count}</p>
+                          <p className="text-xl font-bold font-mono tracking-tight text-blue-light-800 dark:text-blue-light-200 mt-1">{selectedTransformer.sensor_count}</p>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-blue-light-500/20 flex items-center justify-center">
                           <svg className="w-5 h-5 text-blue-light-600 dark:text-blue-light-400" fill="currentColor" viewBox="0 0 24 24">
@@ -682,11 +682,11 @@ export default function DashboardHome() {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gradient-to-br from-success-100 to-success-300 rounded-xl shadow-md backdrop-blur-sm dark:from-success-900/30 dark:to-success-800/30 border border-success-300/40 dark:border-success-700/50">
+                    <div className="p-3 bg-gradient-to-br from-success-100 to-success-300 rounded-xl shadow-md backdrop-blur-sm dark:from-success-900/30 dark:to-success-800/30 border border-success-300/40 dark:border-success-700/50">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-success-600 dark:text-success-400 uppercase tracking-wide">Uptime</p>
-                          <p className="text-2xl font-bold text-success-800 dark:text-success-200 mt-1">98.7%</p>
+                          <p className="text-xl font-bold font-mono tracking-tight text-success-800 dark:text-success-200 mt-1">98.7%</p>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-success-500/20 flex items-center justify-center">
                           <svg className="w-5 h-5 text-success-600 dark:text-success-400" fill="currentColor" viewBox="0 0 24 24">
@@ -699,11 +699,11 @@ export default function DashboardHome() {
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gradient-to-br from-orange-100 to-orange-300 rounded-xl shadow-md backdrop-blur-sm dark:from-orange-900/30 dark:to-orange-800/30 border border-orange-300/40 dark:border-orange-700/50">
+                    <div className="p-3 bg-gradient-to-br from-orange-100 to-orange-300 rounded-xl shadow-md backdrop-blur-sm dark:from-orange-900/30 dark:to-orange-800/30 border border-orange-300/40 dark:border-orange-700/50">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium text-orange-600 dark:text-orange-400 uppercase tracking-wide">Alerts</p>
-                          <p className="text-2xl font-bold text-orange-800 dark:text-orange-200 mt-1">
+                          <p className="text-xl font-bold font-mono tracking-tight text-orange-800 dark:text-orange-200 mt-1">
                             {selectedTransformer.sensors?.filter(s => s.latest_reading?.is_alert).length || 0}
                           </p>
                         </div>
@@ -721,9 +721,9 @@ export default function DashboardHome() {
 
                   {/* Sensor Readings Grid */}
                   {selectedTransformer.sensors && selectedTransformer.sensors.length > 0 && (
-                    <div className="p-4 bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
+                    <div className="p-3 bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-md backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
                       <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Sensor Dashboard</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                         {selectedTransformer.sensors.map((sensor, index) => {
                           // Get real-time data for this sensor
                           const realTimeSensor = transformerSensors[selectedTransformer.id]?.find(
@@ -738,10 +738,10 @@ export default function DashboardHome() {
                           } : sensor.latest_reading;
 
                           return (
-                            <div key={index} className="p-3 bg-gradient-to-br from-gray-50 to-white rounded-lg shadow-sm backdrop-blur-sm dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200/50 dark:border-gray-700/50">
+                            <div key={index} className="p-2 bg-gradient-to-br from-gray-50 to-white rounded-lg shadow-sm backdrop-blur-sm dark:from-gray-800/50 dark:to-gray-900/50 border border-gray-200/50 dark:border-gray-700/50">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="capitalize font-medium text-gray-800 dark:text-gray-200 text-sm">{sensor.name.replace('_', ' ')}</span>
-                                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold ${
+                                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
                                   sensor.is_active
                                     ? 'bg-success bg-opacity-10 text-success dark:bg-opacity-20'
                                     : 'bg-danger bg-opacity-10 text-danger dark:bg-opacity-20'
@@ -752,16 +752,21 @@ export default function DashboardHome() {
                                   )}
                                 </span>
                               </div>
+                              <div className="mb-1 text-[11px] text-gray-500 dark:text-gray-400">
+                                <span className="inline-flex items-center rounded-full px-1 py-0.5 bg-gray-200/40 dark:bg-gray-700/40">
+                                  {sensor.sensor_type}
+                                </span>
+                              </div>
 
                               {displayReading ? (
                                 <div>
                                   <div className="flex items-end justify-between mb-1">
-                                    <span className={`text-xl font-bold ${
+                                    <span className={`text-lg font-bold ${
                                       displayReading.is_alert
                                         ? 'text-red-600 dark:text-red-400'
                                         : 'text-green-600 dark:text-green-400'
                                     }`}>
-                                      {displayReading.value}
+                                      <span className="font-mono tracking-tight">{displayReading.value}</span>
                                     </span>
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
                                       {sensor.sensor_type === 'temperature' && '°C'}
@@ -776,13 +781,13 @@ export default function DashboardHome() {
                                     </span>
                                   </div>
 
-                                  <div className="mt-2 bg-gray-200/50 rounded-full h-1.5 dark:bg-gray-700/50">
+                                  <div className="mt-2 bg-gray-200/50 rounded-full h-1 dark:bg-gray-700/50">
                                     <div className={`h-full rounded-full ${
                                       displayReading.is_alert ? 'bg-red-500' : 'bg-green-500'
                                     }`} style={{width: `${Math.min(displayReading.value / (sensor.sensor_type === 'temperature' ? 100 : sensor.sensor_type === 'voltage' ? 500 : sensor.sensor_type === 'oil_level' ? 100 : 100) * 100, 100)}%`}}></div>
                                   </div>
 
-                                  <div className="mt-1.5 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+                                  <div className="mt-1 flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
                                     <span>
                                       {realTimeSensor
                                         ? `Live: ${new Date(realTimeSensor.timestamp).toLocaleTimeString()}`
@@ -808,18 +813,18 @@ export default function DashboardHome() {
                   )}
 
                   {/* Installation Details */}
-                  <div className="p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
-                    <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Installation Details</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Installation Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Installation Date</p>
-                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <p className="text-base font-semibold text-gray-900 dark:text-white">
                           {new Date(selectedTransformer.installation_date).toLocaleDateString()}
                         </p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Description</p>
-                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <p className="text-base font-semibold text-gray-900 dark:text-white">
                           {selectedTransformer.description || 'No description available'}
                         </p>
                       </div>
@@ -830,9 +835,9 @@ export default function DashboardHome() {
                 <div>
                   <p className="text-gray-500 dark:text-gray-400">Select a transformer from the hierarchy to view detailed information and real-time statistics here.</p>
                   <div className="mt-4 space-y-4">
-                    <div className="p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
+                    <div className="p-4 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg backdrop-blur-sm dark:from-gray-800 dark:to-gray-900 border border-gray-200/50 dark:border-gray-700/50">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-semibold text-xl text-gray-900 dark:text-white">Transformer Name</h4>
+                      <h4 className="font-semibold text-lg text-gray-900 dark:text-white">Transformer Name</h4>
                       <span className="inline-flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold bg-gradient-to-r from-success-400 to-success-600 text-white shadow-md">
                         Active
                       </span>

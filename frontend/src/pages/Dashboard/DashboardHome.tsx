@@ -335,12 +335,13 @@ export default function DashboardHome() {
       recent_readings: [],
     });
     if (regionName && depotName) {
-      setOpenRegions(prev => ({ ...prev, [regionName]: true }));
+      setOpenRegions({ [regionName]: true });
       if (districtName) {
-        setOpenDistricts(prev => ({ ...prev, [`${regionName}::${districtName}`]: true }));
-        setOpenDepots(prev => ({ ...prev, [`${regionName}::${districtName}::${depotName}`]: true }));
+        setOpenDistricts({ [`${regionName}::${districtName}`]: true });
+        setOpenDepots({ [`${regionName}::${districtName}::${depotName}`]: true });
       } else {
-        setOpenDepots(prev => ({ ...prev, [`${regionName}::${depotName}`]: true }));
+        setOpenDistricts({});
+        setOpenDepots({ [`${regionName}::${depotName}`]: true });
       }
     }
   };
